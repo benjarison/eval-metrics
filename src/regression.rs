@@ -129,6 +129,11 @@ mod tests {
     }
 
     #[test]
+    fn test_mse_constant() {
+        assert_approx_eq!(mse(&vec![1.0; 10], &vec![1.0; 10]).unwrap(), 0.0)
+    }
+
+    #[test]
     fn test_rmse() {
         let (scores, labels) = data();
         assert_approx_eq!(rmse(&scores, &labels).unwrap(), 0.035.sqrt())
@@ -145,6 +150,11 @@ mod tests {
     }
 
     #[test]
+    fn test_rmse_constant() {
+        assert_approx_eq!(rmse(&vec![1.0; 10], &vec![1.0; 10]).unwrap(), 0.0)
+    }
+
+    #[test]
     fn test_mae() {
         let (scores, labels) = data();
         assert_approx_eq!(mae(&scores, &labels).unwrap(), 0.175)
@@ -158,6 +168,11 @@ mod tests {
     #[test]
     fn test_mae_unequal_length() {
         assert!(mae(&vec![0.1, 0.2], &vec![0.3, 0.5, 0.8]).is_err())
+    }
+
+    #[test]
+    fn test_mae_constant() {
+        assert_approx_eq!(mae(&vec![1.0; 10], &vec![1.0; 10]).unwrap(), 0.0)
     }
 
     #[test]
