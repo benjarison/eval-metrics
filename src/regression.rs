@@ -63,7 +63,7 @@ pub fn rsq<T: Float>(scores: &Vec<T>, labels: &Vec<T>) -> Result<T, EvalError> {
         let den = labels.iter().fold(T::zero(), |sse, &label| {
             sse + (label - label_mean) * (label - label_mean)
         }) / T::from_usize(length);
-        if den < T::from_f64(1e-16) {
+        if den == T::zero() {
             Err(EvalError::new("Unable to compute r-square due to constant data"))
         } else {
             mse(scores, labels).map(|m| T::one() - (m / den))
@@ -100,7 +100,7 @@ pub fn corr<T: Float>(scores: &Vec<T>, labels: &Vec<T>) -> Result<T, EvalError> 
         });
 
         let den = (sxx * syy).sqrt();
-        if den < T::from_f64(1e-16) {
+        if den == T::zero() {
             Err(EvalError::new("Unable to compute correlation due to constant data"))
         } else {
             Ok(sxy / den)
