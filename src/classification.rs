@@ -118,6 +118,19 @@ impl BinaryConfusionMatrix {
             }
         }
     }
+
+    ///
+    /// Computes Matthews correlation coefficient (phi)
+    ///
+    pub fn mcc(&self) -> Result<f64, EvalError> {
+        let n = self.sum as f64;
+        let s = (self.tpc + self.fnc) as f64 / n;
+        let p = (self.tpc + self.fpc) as f64 / n;
+        match (p * s * (1.0 - s) * (1.0 - p)).sqrt() {
+            0.0 => Err(EvalError::new("Undefined MCC Metric")),
+            den => Ok(((self.tpc as f64 / n) - s * p) / den)
+        }
+    }
 }
 
 ///
