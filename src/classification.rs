@@ -269,7 +269,7 @@ impl MultiConfusionMatrix {
         let pp = p.iter().fold(0.0, |acc, val| acc + (val * val));
         let tp = t.iter().zip(p).fold(0.0, |acc, (t_val, p_val)| acc + t_val * p_val);
 
-        let num = (c * s - tp);
+        let num = c * s - tp;
         let den = (s * s - pp).sqrt() * (s * s - tt).sqrt();
 
         if den == 0.0 {
@@ -301,6 +301,7 @@ impl MultiConfusionMatrix {
         let pcr = self.per_class_recall();
         pcp.iter().zip(pcr.iter()).map(|pair| {
             match pair {
+                (Ok(0.0), Ok(0.0)) => Err(EvalError::new("Undefined per-class F1 metric")),
                 (Ok(p), Ok(r)) => Ok(2.0 * (p * r) / (p + r)),
                 (Err(e), _) | (_, Err(e)) => {
                     Err(EvalError {msg: format!("Unable to compute per-class F1 due to: {}", e)})
@@ -716,6 +717,28 @@ mod tests {
                   vec![0.3, 0.5, 0.2]],
             &vec![1, 0, 1]
         ).unwrap().f1(&Averaging::Macro).is_err());
+    }
+
+    #[test]
+    fn test_multi_f1_0p_0r() {
+
+        let scores = vec![
+            vec![0.3, 0.1, 0.6],
+            vec![0.5, 0.2, 0.3],
+            vec![0.2, 0.7, 0.1],
+            vec![0.3, 0.3, 0.4],
+            vec![0.5, 0.1, 0.4],
+            vec![0.8, 0.1, 0.1],
+            vec![0.3, 0.5, 0.2]
+        ];
+        // every prediction is wrong
+        let labels = vec![1, 2, 0, 0, 1, 1, 0];
+
+        assert!(MultiConfusionMatrix::compute(&scores, &labels)
+            .unwrap()
+            .f1(&Averaging::Macro)
+            .is_err()
+        )
     }
 
     #[test]
