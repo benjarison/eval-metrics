@@ -80,6 +80,7 @@ pub fn corr<T: Float>(scores: &Vec<T>, labels: &Vec<T>) -> Result<T, EvalError> 
     util::validate_data(scores, labels).and_then(|_| {
         let eps = T::from_f64(1e-16);
         let length = scores.len();
+        let zero = T::zero();
 
         let x_mean = scores.iter().fold(T::zero(), |sum, &v| {sum + v}) / T::from_usize(length);
         let y_mean = labels.iter().fold(T::zero(), |sum, &v| {sum + v}) / T::from_usize(length);
@@ -96,7 +97,12 @@ pub fn corr<T: Float>(scores: &Vec<T>, labels: &Vec<T>) -> Result<T, EvalError> 
             sxy += x_diff * y_diff;
         });
 
-        Ok(sxy / ((sxx * syy).sqrt() + eps))
+        let den = (sxx * syy).sqrt();
+        if den < T::from_f64(1e-16) {
+            Err(EvalError::new("Unable to compute correlation due to constant data"))
+        } else {
+            Ok(sxy / den)
+        }
     })
 }
 
@@ -205,5 +211,10 @@ mod tests {
     #[test]
     fn test_corr_unequal_length() {
         assert!(corr(&vec![0.1, 0.2], &vec![0.3, 0.5, 0.8]).is_err())
+    }
+
+    #[test]
+    fn test_corr_constant() {
+        assert!(corr(&vec![1.0; 10], &vec![1.0; 10]).is_err())
     }
 }
