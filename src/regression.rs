@@ -200,6 +200,11 @@ mod tests {
     }
 
     #[test]
+    fn test_rsq_constant() {
+        assert!(rsq(&vec![1.0; 10], &vec![1.0; 10]).is_err())
+    }
+
+    #[test]
     fn test_corr() {
         let (scores, labels) = data();
         assert_approx_eq!(corr(&scores, &labels).unwrap(), 0.7473417080949364)
