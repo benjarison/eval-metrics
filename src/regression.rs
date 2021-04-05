@@ -78,9 +78,7 @@ pub fn rsq<T: Float>(scores: &Vec<T>, labels: &Vec<T>) -> Result<T, EvalError> {
 pub fn corr<T: Float>(scores: &Vec<T>, labels: &Vec<T>) -> Result<T, EvalError> {
 
     util::validate_data(scores, labels).and_then(|_| {
-        let eps = T::from_f64(1e-16);
         let length = scores.len();
-        let zero = T::zero();
 
         let x_mean = scores.iter().fold(T::zero(), |sum, &v| {sum + v}) / T::from_usize(length);
         let y_mean = labels.iter().fold(T::zero(), |sum, &v| {sum + v}) / T::from_usize(length);
