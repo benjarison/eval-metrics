@@ -246,6 +246,40 @@ impl MultiConfusionMatrix {
     }
 
     ///
+    /// Computes the Rk metric, also known as the multi-class Matthews correlation coefficient
+    /// following the approach in "Comparing two K-category assignments by a K-category
+    /// correlation coefficient" (2004)
+    ///
+    pub fn rk(&self) -> Result<f64, EvalError> {
+
+        let mut t = vec![0.0; self.dim];
+        let mut p = vec![0.0; self.dim];
+        let mut c = 0.0;
+        let s = self.sum as f64;
+
+        for i in 0..self.dim {
+            c += self.counts[i][i] as f64;
+            for j in 0..self.dim {
+                t[j] += self.counts[i][j] as f64;
+                p[i] += self.counts[i][j] as f64;
+            }
+        }
+
+        let tt = t.iter().fold(0.0, |acc, val| acc + (val * val));
+        let pp = p.iter().fold(0.0, |acc, val| acc + (val * val));
+        let tp = t.iter().zip(p).fold(0.0, |acc, (t_val, p_val)| acc + t_val * p_val);
+
+        let num = (c * s - tp);
+        let den = (s * s - pp).sqrt() * (s * s - tt).sqrt();
+
+        if den == 0.0 {
+            Err(EvalError::new("Undefined Rk metric"))
+        } else {
+            Ok(num / den)
+        }
+    }
+
+    ///
     /// Computes the per-class precision metrics, resulting in a vector of values for each class
     ///
     pub fn per_class_precision(&self) -> Vec<Result<f64, EvalError>> {
