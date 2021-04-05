@@ -63,7 +63,11 @@ pub fn rsq<T: Float>(scores: &Vec<T>, labels: &Vec<T>) -> Result<T, EvalError> {
         let den = labels.iter().fold(T::zero(), |sse, &label| {
             sse + (label - label_mean) * (label - label_mean)
         }) / T::from_usize(length);
-        mse(scores, labels).map(|m| T::one() - (m / den))
+        if den < T::from_f64(1e-16) {
+            Err(EvalError::new("Unable to compute r-square due to constant data"))
+        } else {
+            mse(scores, labels).map(|m| T::one() - (m / den))
+        }
     })
 }
 
