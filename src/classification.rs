@@ -606,6 +606,13 @@ mod tests {
     }
 
     #[test]
+    fn test_mcc() {
+        let (scores, labels) = binary_data();
+        let matrix = BinaryConfusionMatrix::compute(&scores, &labels, 0.5).unwrap();
+        assert_approx_eq!(matrix.mcc().unwrap(), 0.2581988897471611)
+    }
+
+    #[test]
     fn test_auc() {
         let (scores, labels) = binary_data();
         assert_approx_eq!(auc(&scores, &labels).unwrap(), 0.6)
@@ -739,6 +746,13 @@ mod tests {
             .f1(&Averaging::Macro)
             .is_err()
         )
+    }
+
+    #[test]
+    fn test_rk() {
+        let (scores, labels) = multi_class_data();
+        let matrix = MultiConfusionMatrix::compute(&scores, &labels).unwrap();
+        assert_approx_eq!(matrix.rk().unwrap(), 0.375)
     }
 
     #[test]
