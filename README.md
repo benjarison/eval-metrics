@@ -53,14 +53,12 @@ let threshold = 0.5;
 // compute confusion matrix from scores and labels
 let matrix = BinaryConfusionMatrix::compute(&scores, &labels, threshold).unwrap();
 
-// accuracy
+// metrics
 let acc: Result<f64, EvalError> = matrix.accuracy();
-// precision
 let pre: Result<f64, EvalError> = matrix.precision();
-// recall
 let rec: Result<f64, EvalError> = matrix.recall();
-// f1
 let f1: Result<f64, EvalError> = matrix.f1();
+let mcc: Result<f64, EvalError> = matrix.mcc();
 ```
 
 In additional to the metrics derived from the confusion matrix, the AUC (area under the ROC curve) is also supported
@@ -93,17 +91,15 @@ let labels = vec![2, 1, 1, 2, 0, 2, 0];
 // compute confusion matrix from scores and labels
 let matrix = MultiConfusionMatrix::compute(&scores, &labels).unwrap();
 
-// accuracy
+// metrics
 let acc: Result<f64, EvalError> = matrix.accuracy();
-// precision
 let mac_pre: Result<f64, EvalError> = matrix.precision(&Averaging::Macro);
 let wgt_pre: Result<f64, EvalError> = matrix.precision(&Averaging::Weighted);
-// recall
 let mac_rec: Result<f64, EvalError> = matrix.recall(&Averaging::Macro);
 let wgt_rec: Result<f64, EvalError> = matrix.recall(&Averaging::Weighted);
-// f1
 let mac_f1: Result<f64, EvalError> = matrix.f1(&Averaging::Macro);
 let wgt_f1: Result<f64, EvalError> = matrix.f1(&Averaging::Weighted);
+let rk: Result<f64, EvalError> = matrix.rk();
 ```
 
 In additional to the metrics derived from the confusion matrix, the M-AUC (multi-class AUC) metric as described by
