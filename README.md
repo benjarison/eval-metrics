@@ -16,23 +16,25 @@ values of zero in cases of undefined metrics.
 
 ## Supported Metrics
 
-| Metric      | Task                       | Description                                                      |
-|-------------|----------------------------|------------------------------------------------------------------|
-| Accuracy    | Binary Classification      | Binary Class Accuracy                                            |
-| Precision   | Binary Classification      | Binary Class Precision                                           |
-| Recall      | Binary Classification      | Binary Class Recall                                              |
-| F-1         | Binary Classification      | Harmonic Mean of Precision and Recall                            |
-| AUC         | Binary Classification      | Standard Area Under ROC Curve                                    |
-| Accuracy    | Multi-Class Classification | Multi-Class Accuracy                                             |
-| Precision   | Multi-Class Classification | Multi-Class Precision (requires specified averaging method)      |
-| Recall      | Multi-Class Classification | Multi-Class Recall (requires specified averaging method)         |
-| F-1         | Multi-Class Classification | Multi-Class F1 (requires specified averaging method)             |
-| M-AUC       | Multi-Class Classification | Multi-Class AUC as described by Hand and Till (2001)             |
-| RMSE        | Regression                 | Root Mean Squared Error                                          |
-| MSE         | Regression                 | Mean Squared Error                                               |
-| MAE         | Regression                 | Mean Absolute Error                                              |
-| R-Square    | Regression                 | Coefficient of Determination                                     |
-| Correlation | Regression                 | Linear Correlation Coefficient                                   |
+| Metric      | Task                       | Description                                                        |
+|-------------|----------------------------|--------------------------------------------------------------------|
+| Accuracy    | Binary Classification      | Binary Class Accuracy                                              |
+| Precision   | Binary Classification      | Binary Class Precision                                             |
+| Recall      | Binary Classification      | Binary Class Recall                                                |
+| F-1         | Binary Classification      | Harmonic Mean of Precision and Recall                              |
+| MCC         | Binary Classification      | Matthews Correlation Coefficient                                   |
+| AUC         | Binary Classification      | Standard Area Under ROC Curve                                      |
+| Accuracy    | Multi-Class Classification | Multi-Class Accuracy                                               |
+| Precision   | Multi-Class Classification | Multi-Class Precision (requires specified averaging method)        |
+| Recall      | Multi-Class Classification | Multi-Class Recall (requires specified averaging method)           |
+| F-1         | Multi-Class Classification | Multi-Class F1 (requires specified averaging method)               |
+| Rk          | Multi-Class Classification | K-Category Correlation Coefficient as described by Gorodkin (2004) |
+| M-AUC       | Multi-Class Classification | Multi-Class AUC as described by Hand and Till (2001)               |
+| RMSE        | Regression                 | Root Mean Squared Error                                            |
+| MSE         | Regression                 | Mean Squared Error                                                 |
+| MAE         | Regression                 | Mean Absolute Error                                                |
+| R-Square    | Regression                 | Coefficient of Determination                                       |
+| Correlation | Regression                 | Linear Correlation Coefficient                                     |
 
 ## Usage
 
