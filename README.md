@@ -8,7 +8,7 @@ The goal of this library is to serve as a very lightweight and intuitive collect
 evaluation metrics, with an emphasis on efficiency and explicitly defined behavior. Classification metrics like 
 accuracy, precision, recall, and f1 can all be computed (cheaply) from an instantiated `BinaryConfusionMatrix` or 
 `MultiConfusionMatrix`. The distinction between binary and multi-class classification is made explicit to underscore 
-the fact that these metrics are naturally formulated for the binary case, and that they require additional assumptions 
+the fact that these metrics are naturally formulated for the binary case, and that some require additional assumptions 
 (namely averaging methods) in the multi-class case. `Result`s are used as return types for all metrics, reflecting the
 fact that evaluation metrics can fail to be defined for any number of reasons. If a metric is not well defined, then an 
 `Err` type will be returned. Note that this is inherently more conservative than some other libraries which may impute 
@@ -43,29 +43,27 @@ values of zero in cases of undefined metrics.
 The `BinaryConfusionMatrix` struct provides functionality for computing common binary classification metrics.
 
 ```rust
-use eval_metrics::classification::{BinaryConfusionMatrix, auc};
-
-// data
-let scores = vec![0.5, 0.2, 0.7, 0.4, 0.1, 0.3, 0.8, 0.9]; // note: these could also be f32 values
+// Note: these scores could also be f32 values
+let scores = vec![0.5, 0.2, 0.7, 0.4, 0.1, 0.3, 0.8, 0.9];
 let labels = vec![false, false, true, false, true, false, false, true];
 let threshold = 0.5;
 
 // compute confusion matrix from scores and labels
-let matrix = BinaryConfusionMatrix::compute(&scores, &labels, threshold).unwrap();
+let matrix = BinaryConfusionMatrix::compute(&scores, &labels, threshold)?;
 
 // metrics
-let acc: Result<f64, EvalError> = matrix.accuracy();
-let pre: Result<f64, EvalError> = matrix.precision();
-let rec: Result<f64, EvalError> = matrix.recall();
-let f1: Result<f64, EvalError> = matrix.f1();
-let mcc: Result<f64, EvalError> = matrix.mcc();
+let acc = matrix.accuracy()?;
+let pre = matrix.precision()?;
+let rec = matrix.recall()?;
+let f1 = matrix.f1()?;
+let mcc = matrix.mcc()?;
 ```
 
 In additional to the metrics derived from the confusion matrix, the AUC (area under the ROC curve) is also supported
 as a standalone function.
 
 ```rust
-let auc: Result<f64, EvalError> = auc(&scores, &labels);
+let auc = auc(&scores, &labels)?;
 ```
 
 ### Multi-Class Classification
@@ -74,9 +72,6 @@ The `MultiConfusionMatrix` struct provides functionality for computing common mu
 Additionally, averaging methods must be explicitly provided for these metrics.
 
 ```rust
-use eval_metrics::classification::{Averaging, MultiConfusionMatrix, m_auc};
-
-// data
 let scores = vec![
     vec![0.3, 0.1, 0.6],
     vec![0.5, 0.2, 0.3],
@@ -89,24 +84,24 @@ let scores = vec![
 let labels = vec![2, 1, 1, 2, 0, 2, 0];
 
 // compute confusion matrix from scores and labels
-let matrix = MultiConfusionMatrix::compute(&scores, &labels).unwrap();
+let matrix = MultiConfusionMatrix::compute(&scores, &labels)?;
 
 // metrics
-let acc: Result<f64, EvalError> = matrix.accuracy();
-let mac_pre: Result<f64, EvalError> = matrix.precision(&Averaging::Macro);
-let wgt_pre: Result<f64, EvalError> = matrix.precision(&Averaging::Weighted);
-let mac_rec: Result<f64, EvalError> = matrix.recall(&Averaging::Macro);
-let wgt_rec: Result<f64, EvalError> = matrix.recall(&Averaging::Weighted);
-let mac_f1: Result<f64, EvalError> = matrix.f1(&Averaging::Macro);
-let wgt_f1: Result<f64, EvalError> = matrix.f1(&Averaging::Weighted);
-let rk: Result<f64, EvalError> = matrix.rk();
+let acc = matrix.accuracy()?;
+let mac_pre = matrix.precision(&Averaging::Macro)?;
+let wgt_pre = matrix.precision(&Averaging::Weighted)?;
+let mac_rec = matrix.recall(&Averaging::Macro)?;
+let wgt_rec = matrix.recall(&Averaging::Weighted)?;
+let mac_f1 = matrix.f1(&Averaging::Macro)?;
+let wgt_f1 = matrix.f1(&Averaging::Weighted)?;
+let rk = matrix.rk()?;
 ```
 
 In additional to the metrics derived from the confusion matrix, the M-AUC (multi-class AUC) metric as described by
 Hand and Till (2001) is provided as a standalone function:
 
 ```rust
-let mauc: Result<f64, EvalError> = m_auc(&scores, &labels);
+let mauc = m_auc(&scores, &labels)?;
 ```
 
 ### Regression
@@ -116,18 +111,18 @@ All regression metrics operate on a pair of scores and labels.
 ```rust
 use eval_metrics::regression::*;
 
-// note: these could also be f32 values
+// Note: these could also be f32 values
 let scores = vec![0.4, 0.7, -1.2, 2.5, 0.3];
 let labels = vec![0.2, 1.1, -0.9, 1.3, -0.2];
 
 // root mean squared error
-let rmse: Result<f64, EvalError> = rmse(&scores, &labels);
+let rmse = rmse(&scores, &labels)?;
 // mean squared error
-let mse: Result<f64, EvalError> = mse(&scores, &labels);
+let mse = mse(&scores, &labels)?;
 // mean absolute error
-let mae: Result<f64, EvalError> = mae(&scores, &labels);
+let mae = mae(&scores, &labels)?;
 // coefficient of determination
-let rsq: Result<f64, EvalError> = rsq(&scores, &labels);
+let rsq = rsq(&scores, &labels)?;
 // pearson correlation coefficient
-let corr: Result<f64, EvalError> = corr(&scores, &labels);
+let corr = corr(&scores, &labels)?;
 ```
