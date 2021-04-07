@@ -127,7 +127,7 @@ impl BinaryConfusionMatrix {
         let s = (self.tpc + self.fnc) as f64 / n;
         let p = (self.tpc + self.fpc) as f64 / n;
         match (p * s * (1.0 - s) * (1.0 - p)).sqrt() {
-            0.0 => Err(EvalError::new("Undefined MCC Metric")),
+            den if den == 0.0 => Err(EvalError::new("Undefined MCC Metric")),
             den => Ok(((self.tpc as f64 / n) - s * p) / den)
         }
     }
@@ -301,7 +301,9 @@ impl MultiConfusionMatrix {
         let pcr = self.per_class_recall();
         pcp.iter().zip(pcr.iter()).map(|pair| {
             match pair {
-                (Ok(0.0), Ok(0.0)) => Err(EvalError::new("Undefined per-class F1 metric")),
+                (Ok(p), Ok(r)) if *p == 0.0 && *r == 0.0 => {
+                    Err(EvalError::new("Undefined per-class F1 metric"))
+                },
                 (Ok(p), Ok(r)) => Ok(2.0 * (p * r) / (p + r)),
                 (Err(e), _) | (_, Err(e)) => {
                     Err(EvalError {msg: format!("Unable to compute per-class F1 due to: {}", e)})
