@@ -24,6 +24,11 @@ pub trait Float:
     fn sqrt(self) -> Self;
 
     ///
+    /// Indicates whether or not the value is NaN
+    ///
+    fn is_nan(self) -> bool;
+
+    ///
     /// Provides a representation of the number zero
     ///
     fn zero() -> Self;
@@ -55,6 +60,7 @@ pub trait Float:
 impl Float for f32 {
     fn abs(self) -> Self {self.abs()}
     fn sqrt(self) -> Self {self.sqrt()}
+    fn is_nan(self) -> bool {self.is_nan()}
     fn zero() -> Self {0.0_f32}
     fn one() -> Self {1.0_f32}
     fn from_f32(x: f32) -> Self {x}
@@ -68,6 +74,7 @@ impl Float for f32 {
 impl Float for f64 {
     fn abs(self) -> Self {self.abs()}
     fn sqrt(self) -> Self {self.sqrt()}
+    fn is_nan(self) -> bool {self.is_nan()}
     fn zero() -> Self {0.0}
     fn one() -> Self {1.0}
     fn from_f32(x: f32) -> Self {x as f64}

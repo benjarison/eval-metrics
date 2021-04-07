@@ -11,12 +11,12 @@ use crate::error::EvalError;
 /// * `label` the label vector
 ///
 pub fn mse<T: Float>(scores: &Vec<T>, labels: &Vec<T>) -> Result<T, EvalError> {
-    util::validate_data(scores, labels).and_then(|_| {
+    util::validate_input(scores, labels).and_then(|_| {
         Ok(scores.iter().zip(labels.iter()).fold(T::zero(), |sum, (&a, &b)| {
             let diff = a - b;
             sum + (diff * diff)
         }) / T::from_usize(scores.len()))
-    })
+    }).and_then(util::check_nan)
 }
 
 ///
@@ -40,11 +40,11 @@ pub fn rmse<T: Float>(scores: &Vec<T>, labels: &Vec<T>) -> Result<T, EvalError> 
 /// * `label` the label vector
 ///
 pub fn mae<T: Float>(scores: &Vec<T>, labels: &Vec<T>) -> Result<T, EvalError> {
-    util::validate_data(scores, labels).and_then(|_| {
+    util::validate_input(scores, labels).and_then(|_| {
         Ok(scores.iter().zip(labels.iter()).fold(T::zero(), |sum, (&a, &b)| {
             sum + (a - b).abs()
         }) / T::from_usize(scores.len()))
-    })
+    }).and_then(util::check_nan)
 }
 
 ///
@@ -56,7 +56,7 @@ pub fn mae<T: Float>(scores: &Vec<T>, labels: &Vec<T>) -> Result<T, EvalError> {
 /// * `label` the label vector
 ///
 pub fn rsq<T: Float>(scores: &Vec<T>, labels: &Vec<T>) -> Result<T, EvalError> {
-    util::validate_data(scores, labels).and_then(|_| {
+    util::validate_input(scores, labels).and_then(|_| {
         let length = scores.len();
         let label_sum = labels.iter().fold(T::zero(), |s, &v| {s + v});
         let label_mean =  label_sum / T::from_usize(length);
@@ -81,7 +81,7 @@ pub fn rsq<T: Float>(scores: &Vec<T>, labels: &Vec<T>) -> Result<T, EvalError> {
 ///
 pub fn corr<T: Float>(scores: &Vec<T>, labels: &Vec<T>) -> Result<T, EvalError> {
 
-    util::validate_data(scores, labels).and_then(|_| {
+    util::validate_input(scores, labels).and_then(|_| {
         let length = scores.len();
 
         let x_mean = scores.iter().fold(T::zero(), |sum, &v| {sum + v}) / T::from_usize(length);
@@ -99,11 +99,9 @@ pub fn corr<T: Float>(scores: &Vec<T>, labels: &Vec<T>) -> Result<T, EvalError> 
             sxy += x_diff * y_diff;
         });
 
-        let den = (sxx * syy).sqrt();
-        if den == T::zero() {
-            Err(EvalError::new("Unable to compute correlation due to constant data"))
-        } else {
-            Ok(sxy / den)
+        match (sxx * syy).sqrt() {
+            den if den == T::zero() => Err(EvalError::new("Constant data")),
+            den => util::check_nan(sxy / den)
         }
     })
 }
@@ -142,6 +140,11 @@ mod tests {
     }
 
     #[test]
+    fn test_mse_nan() {
+        assert!(mse(&vec![0.2, 0.5, 0.4], &vec![0.1, 0.4, f64::NAN]).is_err())
+    }
+
+    #[test]
     fn test_rmse() {
         let (scores, labels) = data();
         assert_approx_eq!(rmse(&scores, &labels).unwrap(), 0.035.sqrt())
@@ -160,6 +163,11 @@ mod tests {
     #[test]
     fn test_rmse_constant() {
         assert_approx_eq!(rmse(&vec![1.0; 10], &vec![1.0; 10]).unwrap(), 0.0)
+    }
+
+    #[test]
+    fn test_rmse_nan() {
+        assert!(rmse(&vec![0.2, 0.5, 0.4], &vec![0.1, 0.4, f64::NAN]).is_err())
     }
 
     #[test]
@@ -184,6 +192,11 @@ mod tests {
     }
 
     #[test]
+    fn test_mae_nan() {
+        assert!(mae(&vec![0.2, 0.5, 0.4], &vec![0.1, 0.4, f64::NAN]).is_err())
+    }
+
+    #[test]
     fn test_rsq() {
         let (scores, labels) = data();
         assert_approx_eq!(rsq(&scores, &labels).unwrap(), 0.12156862745098007)
@@ -205,6 +218,11 @@ mod tests {
     }
 
     #[test]
+    fn test_rsq_nan() {
+        assert!(rsq(&vec![0.2, 0.5, 0.4], &vec![0.1, 0.4, f64::NAN]).is_err())
+    }
+
+    #[test]
     fn test_corr() {
         let (scores, labels) = data();
         assert_approx_eq!(corr(&scores, &labels).unwrap(), 0.7473417080949364)
@@ -223,5 +241,10 @@ mod tests {
     #[test]
     fn test_corr_constant() {
         assert!(corr(&vec![1.0; 10], &vec![1.0; 10]).is_err())
+    }
+
+    #[test]
+    fn test_corr_nan() {
+        assert!(corr(&vec![0.2, 0.5, 0.4], &vec![0.1, 0.4, f64::NAN]).is_err())
     }
 }

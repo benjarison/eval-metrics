@@ -34,7 +34,7 @@ impl BinaryConfusionMatrix {
                              labels: &Vec<bool>,
                              threshold: T) -> Result<BinaryConfusionMatrix, EvalError> {
 
-        util::validate_data(scores, labels).and_then(|_| {
+        util::validate_input(scores, labels).and_then(|_| {
             let mut counts = [0, 0, 0, 0];
             scores.iter().zip(labels).for_each(|(&score, &label)| {
                 if score >= threshold && label {
@@ -159,7 +159,7 @@ impl MultiConfusionMatrix {
     pub fn compute<T: Float>(scores: &Vec<Vec<T>>,
                              labels: &Vec<usize>) -> Result<MultiConfusionMatrix, EvalError> {
 
-        util::validate_data(scores, labels).and_then(|_| {
+        util::validate_input(scores, labels).and_then(|_| {
             let dim = scores[0].len();
             let mut counts = vec![vec![0; dim]; dim];
             let mut sum = 0;
@@ -379,7 +379,7 @@ impl MultiConfusionMatrix {
 
 pub fn auc<T: Float>(scores: &Vec<T>, labels: &Vec<bool>) -> Result<f64, EvalError> {
 
-    util::validate_data(scores, labels).and_then(|_| {
+    util::validate_input(scores, labels).and_then(|_| {
         let length = labels.len();
         let mut pairs: Vec<(&T, &bool)> = scores.iter().zip(labels.iter()).collect();
         pairs.sort_by(|(&s1, _), (&s2, _)| {
@@ -419,7 +419,7 @@ pub fn auc<T: Float>(scores: &Vec<T>, labels: &Vec<bool>) -> Result<f64, EvalErr
 
 pub fn m_auc<T: Float>(scores: &Vec<Vec<T>>, labels: &Vec<usize>) -> Result<f64, EvalError> {
 
-    util::validate_data(scores, labels).and_then(|_| {
+    util::validate_input(scores, labels).and_then(|_| {
         let dim = scores[0].len();
         let mut m_sum = 0.0;
 

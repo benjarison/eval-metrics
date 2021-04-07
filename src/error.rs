@@ -19,6 +19,13 @@ impl EvalError {
     pub fn new(msg: &str) -> EvalError {
         EvalError {msg: String::from(msg)}
     }
+
+    ///
+    /// Indicates that a NaN value was encountered
+    ///
+    pub fn nan_value() -> EvalError {
+        EvalError::new("Encountered NaN value")
+    }
 }
 
 impl std::fmt::Display for EvalError {
