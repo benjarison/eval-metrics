@@ -36,8 +36,10 @@ impl BinaryConfusionMatrix {
 
         util::validate_input(scores, labels).and_then(|_| {
             let mut counts = [0, 0, 0, 0];
-            scores.iter().zip(labels).for_each(|(&score, &label)| {
-                if score >= threshold && label {
+            for (&score, &label) in scores.iter().zip(labels) {
+                if score.is_nan() {
+                    return Err(EvalError::nan_value())
+                } else if score >= threshold && label {
                     counts[3] += 1;
                 } else if score >= threshold {
                     counts[2] += 1;
@@ -46,7 +48,7 @@ impl BinaryConfusionMatrix {
                 } else {
                     counts[1] += 1;
                 }
-            });
+            };
             let sum = counts.iter().sum();
             Ok(BinaryConfusionMatrix {
                 tpc: counts[3],
@@ -164,6 +166,9 @@ impl MultiConfusionMatrix {
             let mut counts = vec![vec![0; dim]; dim];
             let mut sum = 0;
             for (i, s) in scores.iter().enumerate() {
+                if s.iter().any(|v| v.is_nan()) {
+                    return Err(EvalError::nan_value())
+                }
                 let ind = s.iter().enumerate().max_by(|(_, a), (_, b)| {
                     a.partial_cmp(b).unwrap_or(Ordering::Equal)
                 }).map(|(mi, _)| mi).ok_or(EvalError::new("Invalid score"))?;
@@ -396,6 +401,9 @@ pub fn auc<T: Float>(scores: &Vec<T>, labels: &Vec<bool>) -> Result<f64, EvalErr
         let mut n0 = 0.0;
 
         for (i, pair) in pairs.iter().enumerate() {
+            if pair.0.is_nan() {
+                return Err(EvalError::nan_value())
+            }
             if *pair.1 {
                 n0 += 1.0;
                 s0 += i as f64 + 1.0;
@@ -509,6 +517,11 @@ mod tests {
     #[test]
     fn test_binary_confusion_matrix_unequal_length() {
         assert!(BinaryConfusionMatrix::compute(&vec![0.1, 0.2], &vec![true, false, true], 0.5).is_err());
+    }
+
+    #[test]
+    fn test_binary_confusion_matrix_nan() {
+        assert!(BinaryConfusionMatrix::compute(&vec![f64::NAN, 0.2, 0.4], &vec![true, false, true], 0.5).is_err());
     }
 
     #[test]
@@ -631,6 +644,11 @@ mod tests {
     }
 
     #[test]
+    fn test_auc_nan() {
+        assert!(auc(&vec![0.4, 0.5, 0.2, f64::NAN], &vec![true, false, true, false]).is_err());
+    }
+
+    #[test]
     fn test_multi_confusion_matrix() {
         let (scores, labels) = multi_class_data();
         let matrix = MultiConfusionMatrix::compute(&scores, &labels).unwrap();
@@ -650,6 +668,12 @@ mod tests {
     fn test_multi_confusion_matrix_unequal_length() {
         assert!(MultiConfusionMatrix::compute(&vec![vec![0.2, 0.4, 0.4], vec![0.5, 0.1, 0.4]],
                                       &vec![2, 1, 0]).is_err());
+    }
+
+    #[test]
+    fn test_multi_confusion_matrix_nan() {
+        assert!(MultiConfusionMatrix::compute(&vec![vec![0.2, 0.4, 0.4], vec![0.5, 0.1, 0.4], vec![0.3, 0.7, f64::NAN]],
+                                              &vec![2, 1, 0]).is_err());
     }
 
     #[test]
@@ -771,5 +795,17 @@ mod tests {
     #[test]
     fn test_m_auc_unequal_length() {
         assert!(m_auc(&Vec::<Vec<f64>>::new(), &vec![3, 0, 1, 2]).is_err());
+    }
+
+    #[test]
+    fn test_m_auc_nan() {
+        let scores = vec![
+            vec![0.3, 0.1, 0.6],
+            vec![0.5, f64::NAN, 0.3],
+            vec![0.2, 0.7, 0.1],
+        ];
+        // every prediction is wrong
+        let labels = vec![1, 2, 0];
+        assert!(m_auc(&scores, &labels).is_err());
     }
 }
