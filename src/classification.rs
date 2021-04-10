@@ -307,11 +307,11 @@ impl MultiConfusionMatrix {
         pcp.iter().zip(pcr.iter()).map(|pair| {
             match pair {
                 (Ok(p), Ok(r)) if *p == 0.0 && *r == 0.0 => {
-                    Err(EvalError::undefined_metric("per-class f1"))
+                    Err(EvalError::undefined_metric("f1"))
                 },
                 (Ok(p), Ok(r)) => Ok(2.0 * (p * r) / (p + r)),
                 (Err(e), _) | (_, Err(e)) => {
-                    Err(EvalError::UndefinedMetricError(format!("per-class f1 ({})", e)))
+                    Err(EvalError::UndefinedMetricError(format!("f1 ({})", e)))
                 }
             }
         }).collect()
@@ -336,7 +336,7 @@ impl MultiConfusionMatrix {
                 }
             }) - a;
             match a + b {
-                0 => Err(EvalError::UndefinedMetricError(format!("per-class {}", metric.name()))),
+                0 => Err(EvalError::undefined_metric(metric.name())),
                 den => Ok(a as f64 / den as f64)
             }
         }).collect()
@@ -764,15 +764,7 @@ mod tests {
     #[test]
     fn test_multi_f1_0p_0r() {
 
-        let scores = vec![
-            vec![0.3, 0.1, 0.6],
-            vec![0.5, 0.2, 0.3],
-            vec![0.2, 0.7, 0.1],
-            vec![0.3, 0.3, 0.4],
-            vec![0.5, 0.1, 0.4],
-            vec![0.8, 0.1, 0.1],
-            vec![0.3, 0.5, 0.2]
-        ];
+        let scores = multi_class_data().0;
         // every prediction is wrong
         let labels = vec![1, 2, 0, 0, 1, 1, 0];
 
