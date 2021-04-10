@@ -64,7 +64,7 @@ pub fn rsq<T: Float>(scores: &Vec<T>, labels: &Vec<T>) -> Result<T, EvalError> {
             sse + (label - label_mean) * (label - label_mean)
         }) / T::from_usize(length);
         if den == T::zero() {
-            Err(EvalError::new("Unable to compute r-square due to constant data"))
+            Err(EvalError::invalid_input("Constant data vector"))
         } else {
             mse(scores, labels).map(|m| T::one() - (m / den))
         }
@@ -100,7 +100,7 @@ pub fn corr<T: Float>(scores: &Vec<T>, labels: &Vec<T>) -> Result<T, EvalError> 
         });
 
         match (sxx * syy).sqrt() {
-            den if den == T::zero() => Err(EvalError::new("Constant data")),
+            den if den == T::zero() => Err(EvalError::invalid_input("Constant data vector")),
             den => util::check_nan(sxy / den)
         }
     })

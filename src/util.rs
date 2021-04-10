@@ -12,11 +12,11 @@ use crate::numeric::Float;
 ///
 pub fn validate_input<T, U>(scores: &Vec<T>, labels: &Vec<U>) -> Result<(), EvalError> {
     if scores.is_empty() {
-        Err(EvalError::new("Scores are empty"))
+        Err(EvalError::invalid_input("Scores are empty"))
     } else if labels.is_empty() {
-        Err(EvalError::new("Labels are empty"))
+        Err(EvalError::invalid_input("Labels are empty"))
     } else if scores.len() != labels.len() {
-        Err(EvalError::new("Scores and labels have different lengths"))
+        Err(EvalError::invalid_input("Scores and labels have different lengths"))
     } else {
         Ok(())
     }
@@ -31,7 +31,7 @@ pub fn validate_input<T, U>(scores: &Vec<T>, labels: &Vec<U>) -> Result<(), Eval
 ///
 pub fn check_nan<T: Float>(value: T) -> Result<T, EvalError> {
     if value.is_nan() {
-        Err(EvalError::nan_value())
+        Err(EvalError::NanValueError)
     } else {
         Ok(value)
     }

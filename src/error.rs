@@ -1,36 +1,46 @@
 
 ///
-/// Represents a general evaluation error
+/// Enumerated evaluation errors
 ///
 #[derive(Clone, Debug)]
-pub struct EvalError {
-    /// The error message
-    pub msg: String
+pub enum EvalError {
+    InvalidInputError(String),
+    NanValueError,
+    UndefinedMetricError(String)
 }
 
 impl EvalError {
+
     ///
-    /// Constructs a new eval error with the provided message
+    /// Constructs a new InvalidInputError with the provided message
     ///
     /// # Arguments
     ///
-    /// * `msg` the error message
+    /// * `msg` the detailed error message
     ///
-    pub fn new(msg: &str) -> EvalError {
-        EvalError {msg: String::from(msg)}
+    pub fn invalid_input(msg: &str) -> EvalError {
+        EvalError::InvalidInputError(String::from(msg))
     }
 
     ///
-    /// Indicates that a NaN value was encountered
+    /// Constructs a new UndefinedMetricError with the provided metric name
     ///
-    pub fn nan_value() -> EvalError {
-        EvalError::new("Encountered NaN value")
+    /// # Arguments
+    ///
+    /// * `metric` the metric name
+    ///
+    pub fn undefined_metric(metric: &str) -> EvalError {
+        EvalError::UndefinedMetricError(String::from(metric))
     }
 }
 
 impl std::fmt::Display for EvalError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.msg)
+        match self {
+            EvalError::InvalidInputError(msg) => write!(f, "Invalid input: {}", msg),
+            EvalError::NanValueError => write!(f, "Encountered NaN value"),
+            EvalError::UndefinedMetricError(metric) => write!(f, "Undefined metric: {}", metric)
+        }
     }
 }
 
