@@ -115,7 +115,7 @@ impl BinaryConfusionMatrix {
     pub fn f1(&self) -> Result<f64, EvalError> {
         match (self.precision(), self.recall()) {
             (Ok(p), Ok(r)) => Ok(2.0 * (p * r) / (p + r)),
-            (Err(e), _) | (_, Err(e)) => {
+            (Err(_), _) | (_, Err(_)) => {
                 Err(EvalError::undefined_metric("f1"))
             }
         }
@@ -397,16 +397,30 @@ pub fn auc<T: Float>(scores: &Vec<T>, labels: &Vec<bool>) -> Result<T, EvalError
             }
         });
 
-        let mut s0 = T::zero();
-        let mut n0 = T::zero();
+        let mut s0 = if *pairs[0].1 {T::one()} else {T::zero()};
+        let mut n0 = s0;
 
-        for (i, pair) in pairs.iter().enumerate() {
-            if pair.0.is_nan() {
+        let mut ni = T::zero();
+        let mut si = T::zero();
+        let mut pi = T::zero();
+
+        for i in 1..length {
+            let s1 = *pairs[i].0;
+            let s2 = *pairs[i-1].0;
+            if s1.is_nan() || s2.is_nan() {
                 return Err(EvalError::NanValueError)
             }
-            if *pair.1 {
-                n0 += T::one();
-                s0 += T::from_usize(i) + T::one();
+            ni += T::one();
+            si += T::from_usize(i + 1);
+            if *pairs[i].1 {
+                pi += T::one();
+            }
+            if s1 > s2 || i == length - 1 {
+                s0 += si * pi / ni;
+                n0 += pi;
+                ni = T::zero();
+                si = T::zero();
+                pi = T::zero();
             }
         }
 
@@ -646,6 +660,13 @@ mod tests {
     }
 
     #[test]
+    fn test_auc_tied_scores() {
+        let scores = vec![0.1, 0.2, 0.3, 0.3, 0.3, 0.7, 0.8];
+        let labels = vec![false, false, true, false, true, false, true];
+        assert_approx_eq!(auc(&scores, &labels).unwrap(), 0.75)
+    }
+
+    #[test]
     fn test_auc_empty() {
         assert!(auc(&Vec::<f64>::new(), &Vec::<bool>::new()).is_err());
     }
@@ -797,7 +818,7 @@ mod tests {
     #[test]
     fn test_m_auc() {
         let (scores, labels) = multi_class_data();
-        assert_approx_eq!(m_auc(&scores, &labels).unwrap(), 0.7222222222222221)
+        assert_approx_eq!(m_auc(&scores, &labels).unwrap(), 0.6805555555555557)
     }
 
     #[test]
