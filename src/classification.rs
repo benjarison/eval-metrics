@@ -411,7 +411,10 @@ pub fn auc<T: Float>(scores: &Vec<T>, labels: &Vec<bool>) -> Result<T, EvalError
         }
 
         let n1 = T::from_usize(length) - n0;
-        Ok((s0 - (n0 * (n0 + T::one())) / T::from_f64(2.0)) / (n0 * n1))
+        match n0 * n1 {
+            den if den == T::zero() => Err(EvalError::undefined_metric("auc")),
+            den => Ok((s0 - (n0 * (n0 + T::one())) / T::from_f64(2.0)) / den)
+        }
     })
 }
 
@@ -658,6 +661,15 @@ mod tests {
     }
 
     #[test]
+    fn test_auc_constant_label() {
+        let scores = vec![0.1, 0.4, 0.5, 0.7];
+        let labels_true = vec![true; 4];
+        let labels_false = vec![false; 4];
+        assert!(auc(&scores, &labels_true).is_err());
+        assert!(auc(&scores, &labels_false).is_err());
+    }
+
+    #[test]
     fn test_multi_confusion_matrix() {
         let (scores, labels) = multi_class_data();
         let matrix = MultiConfusionMatrix::compute(&scores, &labels).unwrap();
@@ -808,5 +820,18 @@ mod tests {
         // every prediction is wrong
         let labels = vec![1, 2, 0];
         assert!(m_auc(&scores, &labels).is_err());
+    }
+
+    #[test]
+    fn test_m_auc_constant_label() {
+        let scores = vec![
+            vec![0.3, 0.1, 0.6],
+            vec![0.5, 0.2, 0.3],
+            vec![0.2, 0.7, 0.1],
+            vec![0.8, 0.1, 0.1],
+        ];
+
+        let labels = vec![1, 1, 1, 1];
+        assert!(m_auc(&scores, &labels).is_err())
     }
 }
