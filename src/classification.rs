@@ -136,6 +136,132 @@ impl BinaryConfusionMatrix {
 }
 
 ///
+/// Represents a single point along a roc curve
+///
+#[derive(Copy, Clone, Debug)]
+pub struct RocPoint<T: Float> {
+    /// True positive rate
+    pub tpr: T,
+    /// False positive rate
+    pub fpr: T,
+    /// Score threshold
+    pub threshold: T
+}
+
+///
+/// Represents a full roc curve
+///
+#[derive(Clone, Debug)]
+pub struct RocCurve<T: Float> {
+    /// Roc curve points
+    pub points: Vec<RocPoint<T>>,
+    /// Length
+    dim: usize
+}
+
+impl <T: Float> RocCurve<T> {
+
+    ///
+    /// Computes the roc curve from the provided data
+    ///
+    /// # Arguments
+    ///
+    /// * `scores` the vector of scores
+    /// * `labels` the vector of labels
+    ///
+    pub fn compute(scores: &Vec<T>, labels: &Vec<bool>) -> Result<RocCurve<T>, EvalError> {
+        util::validate_input(scores, labels).and_then(|_| {
+            // roc not defined for a single data point
+            let n = match scores.len() {
+                1 => return Err(EvalError::invalid_input(
+                    "Unable to compute roc on single data point"
+                )),
+                len => len
+            };
+            let mut pairs = Vec::<(T, bool)>::with_capacity(n);
+            let mut np = 0;
+
+            for i in 0..n {
+                if scores[i].is_nan() {
+                    return Err(EvalError::NanValueError)
+                }
+                pairs.push((scores[i], labels[i]));
+                if labels[i] {
+                    np += 1;
+                }
+            }
+
+            let nn = n - np;
+            // sort descending here
+            pairs.sort_by(|(s1, l1), (s2, l2)| {
+                if s1 > s2 {
+                    Ordering::Less
+                } else if s1 < s2 {
+                    Ordering::Greater
+                } else {
+                    Ordering::Equal
+                }
+            });
+
+            let mut tp = if pairs[0].1 {1} else {0};
+            let mut fp = 1 - tp;
+            let mut points = Vec::<RocPoint<T>>::new();
+
+            for i in 1..n {
+                if pairs[i].0 != pairs[i-1].0 {
+                    let tpr = T::from_usize(tp) / T::from_usize(np);
+                    let fpr = T::from_usize(fp) / T::from_usize(nn);
+                    let threshold = pairs[i-1].0;
+                    // keep updating the threshold until we get past tpr, fpr = 0
+                    if tpr == T::zero() && fpr == T::zero() {
+                        match points.last_mut() {
+                            Some(mut point) => {
+                                point = &mut RocPoint {tpr, fpr, threshold};
+                            }
+                            _ => ()
+                        }
+                    } else if tpr.is_nan() || fpr.is_nan() {
+                        return Err(EvalError::undefined_metric("roc curve"))
+                    } else {
+                        points.push(RocPoint {tpr, fpr, threshold})
+                    }
+                }
+                if pairs[i].1 {
+                    tp += 1;
+                } else {
+                    fp += 1;
+                }
+            }
+
+            match points.last() {
+                Some(point) if point.tpr != T::one() || point.fpr != T::one() => {
+                    let t = pairs.last().unwrap().0;
+                    points.push(RocPoint {tpr: T::one(), fpr: T::one(), threshold: t});
+                },
+                _ => ()
+            }
+
+            let dim = points.len();
+            Ok(RocCurve {points, dim})
+        })
+    }
+
+    ///
+    /// Computes the AUC from the roc curve
+    ///
+    pub fn auc(&self) -> Result<T, EvalError> {
+        let mut sum = self.points[0].tpr * self.points[0].fpr / T::from_f64(2.0);
+        for i in 1..self.dim {
+            let fpr_diff = self.points[i].fpr - self.points[i-1].fpr;
+            let a = self.points[i-1].tpr * fpr_diff;
+            let b = (self.points[i].tpr - self.points[i-1].tpr) * fpr_diff / T::from_f64(2.0);
+            sum += (a + b);
+        }
+        return Ok(sum)
+    }
+}
+
+///
 /// Confusion matrix for multi-class classification, in which predicted counts constitute the rows,
 /// and actual (label) counts constitute the columns
 ///
@@ -374,65 +500,6 @@ impl MultiConfusionMatrix {
 }
 
 ///
-/// Computes the AUC (area under the ROC curve) for binary classification
-///
-/// # Arguments
-///
-/// * `scores` the vector of scores
-/// * `labels` the vector of labels
-///
-
-pub fn auc<T: Float>(scores: &Vec<T>, labels: &Vec<bool>) -> Result<T, EvalError> {
-
-    util::validate_input(scores, labels).and_then(|_| {
-        let length = labels.len();
-        let mut pairs: Vec<(&T, &bool)> = scores.iter().zip(labels.iter()).collect();
-        pairs.sort_by(|(&s1, _), (&s2, _)| {
-            if s1 > s2 {
-                Ordering::Greater
-            } else if s1 < s2 {
-                Ordering::Less
-            } else {
-                Ordering::Equal
-            }
-        });
-
-        let mut s0 = if *pairs[0].1 {T::one()} else {T::zero()};
-        let mut n0 = s0;
-
-        let mut ni = T::zero();
-        let mut si = T::zero();
-        let mut pi = T::zero();
-
-        for i in 1..length {
-            let s1 = *pairs[i].0;
-            let s2 = *pairs[i-1].0;
-            if s1.is_nan() || s2.is_nan() {
-                return Err(EvalError::NanValueError)
-            }
-            ni += T::one();
-            si += T::from_usize(i + 1);
-            if *pairs[i].1 {
-                pi += T::one();
-            }
-            if s1 > s2 || i == length - 1 {
-                s0 += si * pi / ni;
-                n0 += pi;
-                ni = T::zero();
-                si = T::zero();
-                pi = T::zero();
-            }
-        }
-
-        let n1 = T::from_usize(length) - n0;
-        match n0 * n1 {
-            den if den == T::zero() => Err(EvalError::undefined_metric("auc")),
-            den => Ok((s0 - (n0 * (n0 + T::one())) / T::from_f64(2.0)) / den)
-        }
-    })
-}
-
-///
 /// Computes the multi-class AUC metric as described by Hand and Till in "A Simple Generalisation
 /// of the Area Under the ROC Curve for Multiple Class Classification Problems" (2001)
 ///
@@ -463,9 +530,9 @@ pub fn m_auc<T: Float>(scores: &Vec<Vec<T>>, labels: &Vec<usize>) -> Result<T, E
         for j in 0..dim {
             for k in 0..j {
                 let (k_scores, k_labels) = subset(scores, labels, j, k);
-                let ajk = auc(&k_scores, &k_labels)?;
+                let ajk = RocCurve::compute(&k_scores, &k_labels)?.auc()?;
                 let (j_scores, j_labels) = subset(scores, labels, k, j);
-                let akj = auc(&j_scores, &j_labels)?;
+                let akj = RocCurve::compute(&j_scores, &j_labels)?.auc()?;
                 m_sum += (ajk + akj) / T::from_f64(2.0);
             }
         }
@@ -654,40 +721,48 @@ mod tests {
     }
 
     #[test]
+    fn test_roc_empty() {
+        assert!(RocCurve::compute(&Vec::<f64>::new(), &Vec::<bool>::new()).is_err());
+    }
+
+    #[test]
+    fn test_roc_unequal_length() {
+        assert!(RocCurve::compute(&vec![0.4, 0.5, 0.2], &vec![true, false, true, false]).is_err());
+    }
+
+    #[test]
+    fn test_roc_nan() {
+        assert!(RocCurve::compute(&vec![0.4, 0.5, 0.2, f64::NAN], &vec![true, false, true, false]).is_err());
+    }
+
+    #[test]
+    fn test_roc_constant_label() {
+        let scores = vec![0.1, 0.4, 0.5, 0.7];
+        let labels_true = vec![true; 4];
+        let labels_false = vec![false; 4];
+        assert!(RocCurve::compute(&scores, &labels_true).is_err());
+        assert!(RocCurve::compute(&scores, &labels_false).is_err());
+    }
+
+    #[test]
     fn test_auc() {
         let (scores, labels) = binary_data();
-        assert_approx_eq!(auc(&scores, &labels).unwrap(), 0.6)
+        assert_approx_eq!(RocCurve::compute(&scores, &labels).unwrap().auc().unwrap(), 0.6);
+
+        let scores2 = vec![0.2, 0.5, 0.5, 0.3];
+        let labels2 = vec![false, true, false, true];
+        assert_approx_eq!(RocCurve::compute(&scores2, &labels2).unwrap().auc().unwrap(), 0.625);
     }
 
     #[test]
     fn test_auc_tied_scores() {
         let scores = vec![0.1, 0.2, 0.3, 0.3, 0.3, 0.7, 0.8];
-        let labels = vec![false, false, true, false, true, false, true];
-        assert_approx_eq!(auc(&scores, &labels).unwrap(), 0.75)
-    }
-
-    #[test]
-    fn test_auc_empty() {
-        assert!(auc(&Vec::<f64>::new(), &Vec::<bool>::new()).is_err());
-    }
-
-    #[test]
-    fn test_auc_unequal_length() {
-        assert!(auc(&vec![0.4, 0.5, 0.2], &vec![true, false, true, false]).is_err());
-    }
-
-    #[test]
-    fn test_auc_nan() {
-        assert!(auc(&vec![0.4, 0.5, 0.2, f64::NAN], &vec![true, false, true, false]).is_err());
-    }
-
-    #[test]
-    fn test_auc_constant_label() {
-        let scores = vec![0.1, 0.4, 0.5, 0.7];
-        let labels_true = vec![true; 4];
-        let labels_false = vec![false; 4];
-        assert!(auc(&scores, &labels_true).is_err());
-        assert!(auc(&scores, &labels_false).is_err());
+        let labels1 = vec![false, false, true, false, true, false, true];
+        let labels2 = vec![false, false, true, true, false, false, true];
+        let labels3 = vec![false, false, false, true, true, false, true];
+        assert_approx_eq!(RocCurve::compute(&scores, &labels1).unwrap().auc().unwrap(), 0.75);
+        assert_approx_eq!(RocCurve::compute(&scores, &labels2).unwrap().auc().unwrap(), 0.75);
+        assert_approx_eq!(RocCurve::compute(&scores, &labels3).unwrap().auc().unwrap(), 0.75);
     }
 
     #[test]
@@ -818,7 +893,7 @@ mod tests {
     #[test]
     fn test_m_auc() {
         let (scores, labels) = multi_class_data();
-        assert_approx_eq!(m_auc(&scores, &labels).unwrap(), 0.6805555555555557)
+        assert_approx_eq!(m_auc(&scores, &labels).unwrap(), 0.673611111111111)
     }
 
     #[test]
