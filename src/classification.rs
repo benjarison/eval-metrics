@@ -382,7 +382,7 @@ impl MultiConfusionMatrix {
 /// * `labels` the vector of labels
 ///
 
-pub fn auc<T: Float>(scores: &Vec<T>, labels: &Vec<bool>) -> Result<f64, EvalError> {
+pub fn auc<T: Float>(scores: &Vec<T>, labels: &Vec<bool>) -> Result<T, EvalError> {
 
     util::validate_input(scores, labels).and_then(|_| {
         let length = labels.len();
@@ -397,21 +397,21 @@ pub fn auc<T: Float>(scores: &Vec<T>, labels: &Vec<bool>) -> Result<f64, EvalErr
             }
         });
 
-        let mut s0 = 0.0;
-        let mut n0 = 0.0;
+        let mut s0 = T::zero();
+        let mut n0 = T::zero();
 
         for (i, pair) in pairs.iter().enumerate() {
             if pair.0.is_nan() {
                 return Err(EvalError::NanValueError)
             }
             if *pair.1 {
-                n0 += 1.0;
-                s0 += i as f64 + 1.0;
+                n0 += T::one();
+                s0 += T::from_usize(i) + T::one();
             }
         }
 
-        let n1 = length as f64 - n0;
-        Ok((s0 - (n0 * (n0 + 1.0)) / 2.0) / (n0 * n1))
+        let n1 = T::from_usize(length) - n0;
+        Ok((s0 - (n0 * (n0 + T::one())) / T::from_f64(2.0)) / (n0 * n1))
     })
 }
 
@@ -425,11 +425,11 @@ pub fn auc<T: Float>(scores: &Vec<T>, labels: &Vec<bool>) -> Result<f64, EvalErr
 /// * `labels` the vector of class labels
 ///
 
-pub fn m_auc<T: Float>(scores: &Vec<Vec<T>>, labels: &Vec<usize>) -> Result<f64, EvalError> {
+pub fn m_auc<T: Float>(scores: &Vec<Vec<T>>, labels: &Vec<usize>) -> Result<T, EvalError> {
 
     util::validate_input(scores, labels).and_then(|_| {
         let dim = scores[0].len();
-        let mut m_sum = 0.0;
+        let mut m_sum = T::zero();
 
         fn subset<T: Float>(scr: &Vec<Vec<T>>,
                             lab: &Vec<usize>,
@@ -449,11 +449,11 @@ pub fn m_auc<T: Float>(scores: &Vec<Vec<T>>, labels: &Vec<usize>) -> Result<f64,
                 let ajk = auc(&k_scores, &k_labels)?;
                 let (j_scores, j_labels) = subset(scores, labels, k, j);
                 let akj = auc(&j_scores, &j_labels)?;
-                m_sum += (ajk + akj) / 2.0;
+                m_sum += (ajk + akj) / T::from_f64(2.0);
             }
         }
 
-        Ok(m_sum * 2.0 / (dim * (dim - 1)) as f64)
+        Ok(m_sum * T::from_f64(2.0) / (T::from_usize(dim) * (T::from_usize(dim) - T::one())))
     })
 }
 
