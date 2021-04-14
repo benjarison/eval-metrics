@@ -174,34 +174,13 @@ impl <T: Float> RocCurve<T> {
             // roc not defined for a single data point
             let n = match scores.len() {
                 1 => return Err(EvalError::invalid_input(
-                    "Unable to compute roc on single data point"
+                    "Unable to compute roc curve on single data point"
                 )),
                 len => len
             };
-            let mut pairs = Vec::<(T, bool)>::with_capacity(n);
-            let mut np = 0;
-
-            for i in 0..n {
-                if scores[i].is_nan() {
-                    return Err(EvalError::NanValueError)
-                }
-                pairs.push((scores[i], labels[i]));
-                if labels[i] {
-                    np += 1;
-                }
-            }
-
+            let (mut pairs, np) = create_pairs(scores, labels)?;
             let nn = n - np;
-            // sort descending here
-            pairs.sort_by(|(s1, l1), (s2, l2)| {
-                if s1 > s2 {
-                    Ordering::Less
-                } else if s1 < s2 {
-                    Ordering::Greater
-                } else {
-                    Ordering::Equal
-                }
-            });
+            sort_pairs_descending(&mut pairs);
 
             let mut tp = if pairs[0].1 {1} else {0};
             let mut fp = 1 - tp;
@@ -260,6 +239,94 @@ impl <T: Float> RocCurve<T> {
         return Ok(sum)
     }
 }
+
+///
+/// Represents a single point along a precision-recall curve
+///
+#[derive(Copy, Clone, Debug)]
+pub struct PrPoint<T: Float> {
+    /// Precision value
+    pub precision: T,
+    /// Recall value
+    pub recall: T,
+    /// Score threshold
+    pub threshold: T
+}
+
+///
+/// Represents a full precision-recall curve
+///
+#[derive(Clone, Debug)]
+pub struct PrCurve<T: Float> {
+    /// PR curve points
+    pub points: Vec<PrPoint<T>>,
+    /// Length
+    dim: usize
+}
+
+impl <T: Float> PrCurve<T> {
+
+    ///
+    /// Computes the precision-recall curve from the provided data
+    ///
+    /// # Arguments
+    ///
+    /// * `scores` the vector of scores
+    /// * `labels` the vector of labels
+    ///
+    pub fn compute(scores: &Vec<T>, labels: &Vec<bool>) -> Result<PrCurve<T>, EvalError> {
+        util::validate_input(scores, labels).and_then(|_| {
+            let n = match scores.len() {
+                1 => return Err(EvalError::invalid_input(
+                    "Unable to compute pr curve on single data point"
+                )),
+                len => len
+            };
+            let (mut pairs, mut fnc) = create_pairs(scores, labels)?;
+            sort_pairs_descending(&mut pairs);
+            let mut tpc = 0;
+            let mut fpc = 0;
+            let mut points = Vec::<PrPoint<T>>::new();
+
+            for i in 0..n {
+                if pairs[i].1 {
+                    tpc += 1;
+                    fnc -= 1;
+                } else {
+                    fpc += 1;
+                }
+                if (i < n-1 && pairs[i].0 != pairs[i+1].0) || i == n-1 {
+                    let pre = T::from_usize(tpc) / T::from_usize(tpc + fpc);
+                    let rec = T::from_usize(tpc) / T::from_usize(tpc + fnc);
+                    if pre.is_nan() || rec.is_nan() {
+                        return Err(EvalError::undefined_metric("pr curve"))
+                    }
+                    let threshold = pairs[i].0;
+                    points.insert(0, PrPoint {precision: pre, recall: rec, threshold});
+                }
+            }
+
+            let dim = points.len();
+            Ok(PrCurve {points, dim})
+        })
+    }
+
+    ///
+    /// Computes the average precision metric from the PR curve
+    ///
+    pub fn ap(&self) -> Result<T, EvalError> {
+        let mut avg_pre = match self.points.last() {
+            Some(point) => point.recall * point.precision,
+            _ => return Err(EvalError::undefined_metric("ap"))
+        };
+        for i in (1..self.dim).rev() {
+            let rec_diff = self.points[i-1].recall - self.points[i].recall;
+            avg_pre += rec_diff * self.points[i-1].precision;
+        }
+        return Ok(avg_pre)
+    }
+}
+
 
 ///
 /// Confusion matrix for multi-class classification, in which predicted counts constitute the rows,
@@ -564,6 +631,37 @@ impl Metric {
             Metric::Recall => "recall"
         }
     }
+}
+
+fn create_pairs<T: Float>(scores: &Vec<T>,
+                          labels: &Vec<bool>) -> Result<(Vec<(T, bool)>, usize), EvalError> {
+
+    let n = scores.len();
+    let mut pairs = Vec::with_capacity(n);
+    let mut num_pos = 0;
+
+    for i in 0..n {
+        if scores[i].is_nan() {
+            return Err(EvalError::NanValueError)
+        } else if labels[i] {
+            num_pos += 1;
+        }
+        pairs.push((scores[i], labels[i]))
+    }
+
+    Ok((pairs, num_pos))
+}
+
+fn sort_pairs_descending<T: Float>(pairs: &mut Vec<(T, bool)>) {
+    pairs.sort_unstable_by(|(s1, l1), (s2, l2)| {
+        if s1 > s2 {
+            Ordering::Less
+        } else if s1 < s2 {
+            Ordering::Greater
+        } else {
+            Ordering::Equal
+        }
+    });
 }
 
 #[cfg(test)]
