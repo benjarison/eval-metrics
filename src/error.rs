@@ -5,7 +5,6 @@
 #[derive(Clone, Debug)]
 pub enum EvalError {
     InvalidInputError(String),
-    NanValueError,
     UndefinedMetricError(String)
 }
 
@@ -29,8 +28,8 @@ impl EvalError {
     ///
     /// * `metric` the metric name
     ///
-    pub fn undefined_metric(metric: &str) -> EvalError {
-        EvalError::UndefinedMetricError(String::from(metric))
+    pub fn undefined_metric(msg: &str) -> EvalError {
+        EvalError::UndefinedMetricError(String::from(msg))
     }
 }
 
@@ -38,8 +37,7 @@ impl std::fmt::Display for EvalError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             EvalError::InvalidInputError(msg) => write!(f, "Invalid input: {}", msg),
-            EvalError::NanValueError => write!(f, "Encountered NaN value"),
-            EvalError::UndefinedMetricError(metric) => write!(f, "Undefined metric: {}", metric)
+            EvalError::UndefinedMetricError(msg) => write!(f, "Undefined metric: {}", msg)
         }
     }
 }

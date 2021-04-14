@@ -31,7 +31,7 @@ pub fn validate_input<T, U>(scores: &Vec<T>, labels: &Vec<U>) -> Result<(), Eval
 ///
 pub fn check_nan<T: Float>(value: T) -> Result<T, EvalError> {
     if value.is_nan() {
-        Err(EvalError::NanValueError)
+        Err(EvalError::undefined_metric("Encountered NaN value"))
     } else {
         Ok(value)
     }

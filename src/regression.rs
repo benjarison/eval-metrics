@@ -64,7 +64,7 @@ pub fn rsq<T: Float>(scores: &Vec<T>, labels: &Vec<T>) -> Result<T, EvalError> {
             sse + (label - label_mean) * (label - label_mean)
         }) / T::from_usize(length);
         if den == T::zero() {
-            Err(EvalError::invalid_input("Constant data vector"))
+            Err(EvalError::undefined_metric("Constant data vector"))
         } else {
             mse(scores, labels).map(|m| T::one() - (m / den))
         }
@@ -100,7 +100,7 @@ pub fn corr<T: Float>(scores: &Vec<T>, labels: &Vec<T>) -> Result<T, EvalError> 
         });
 
         match (sxx * syy).sqrt() {
-            den if den == T::zero() => Err(EvalError::invalid_input("Constant data vector")),
+            den if den == T::zero() => Err(EvalError::undefined_metric("Constant data vector")),
             den => util::check_nan(sxy / den)
         }
     })

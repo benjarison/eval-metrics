@@ -38,7 +38,7 @@ impl BinaryConfusionMatrix {
             let mut counts = [0, 0, 0, 0];
             for (&score, &label) in scores.iter().zip(labels) {
                 if score.is_nan() {
-                    return Err(EvalError::NanValueError)
+                    return Err(EvalError::undefined_metric("Encountered NaN value in scores"))
                 } else if score >= threshold && label {
                     counts[3] += 1;
                 } else if score >= threshold {
@@ -84,7 +84,7 @@ impl BinaryConfusionMatrix {
     pub fn accuracy(&self) -> Result<f64, EvalError> {
         let num = self.tpc + self.tnc;
         match self.sum {
-            0 => Err(EvalError::undefined_metric("accuracy")),
+            0 => Err(EvalError::undefined_metric("TPC + TNC = 0")),
             sum => Ok(num as f64 / sum as f64)
         }
     }
@@ -94,7 +94,7 @@ impl BinaryConfusionMatrix {
     ///
     pub fn precision(&self) -> Result<f64, EvalError> {
         match self.tpc + self.fpc {
-            0 => Err(EvalError::undefined_metric("precision")),
+            0 => Err(EvalError::undefined_metric("TPC + FPC = 0")),
             den => Ok((self.tpc as f64) / den as f64)
         }
     }
@@ -104,7 +104,7 @@ impl BinaryConfusionMatrix {
     ///
     pub fn recall(&self) -> Result<f64, EvalError> {
         match self.tpc + self.fnc {
-            0 => Err(EvalError::undefined_metric("recall")),
+            0 => Err(EvalError::undefined_metric("TPC + FNC = 0")),
             den => Ok((self.tpc as f64) / den as f64)
         }
     }
@@ -116,7 +116,7 @@ impl BinaryConfusionMatrix {
         match (self.precision(), self.recall()) {
             (Ok(p), Ok(r)) => Ok(2.0 * (p * r) / (p + r)),
             (Err(_), _) | (_, Err(_)) => {
-                Err(EvalError::undefined_metric("f1"))
+                Err(EvalError::undefined_metric("Unable to compute F1 due to precision/recall"))
             }
         }
     }
@@ -129,7 +129,7 @@ impl BinaryConfusionMatrix {
         let s = (self.tpc + self.fnc) as f64 / n;
         let p = (self.tpc + self.fpc) as f64 / n;
         match (p * s * (1.0 - s) * (1.0 - p)).sqrt() {
-            den if den == 0.0 => Err(EvalError::undefined_metric("mcc")),
+            den if den == 0.0 => Err(EvalError::undefined_metric("Denominator is zero")),
             den => Ok(((self.tpc as f64 / n) - s * p) / den)
         }
     }
@@ -200,7 +200,7 @@ impl <T: Float> RocCurve<T> {
                             _ => ()
                         }
                     } else if tpr.is_nan() || fpr.is_nan() {
-                        return Err(EvalError::undefined_metric("roc curve"))
+                        return Err(EvalError::undefined_metric("Encountered NaN value"))
                     } else {
                         points.push(RocPoint {tpr, fpr, threshold})
                     }
@@ -299,7 +299,7 @@ impl <T: Float> PrCurve<T> {
                     let pre = T::from_usize(tpc) / T::from_usize(tpc + fpc);
                     let rec = T::from_usize(tpc) / T::from_usize(tpc + fnc);
                     if pre.is_nan() || rec.is_nan() {
-                        return Err(EvalError::undefined_metric("pr curve"))
+                        return Err(EvalError::undefined_metric("Encountered NaN value"))
                     }
                     let threshold = pairs[i].0;
                     points.insert(0, PrPoint {precision: pre, recall: rec, threshold});
@@ -317,7 +317,7 @@ impl <T: Float> PrCurve<T> {
     pub fn ap(&self) -> Result<T, EvalError> {
         let mut avg_pre = match self.points.last() {
             Some(point) => point.recall * point.precision,
-            _ => return Err(EvalError::undefined_metric("ap"))
+            _ => return Err(EvalError::undefined_metric("Unable to compute AP"))
         };
         for i in (1..self.dim).rev() {
             let rec_diff = self.points[i-1].recall - self.points[i].recall;
@@ -360,11 +360,11 @@ impl MultiConfusionMatrix {
             let mut sum = 0;
             for (i, s) in scores.iter().enumerate() {
                 if s.iter().any(|v| v.is_nan()) {
-                    return Err(EvalError::NanValueError)
+                    return Err(EvalError::undefined_metric("Encountered NaN value in scores"))
                 }
                 let ind = s.iter().enumerate().max_by(|(_, a), (_, b)| {
                     a.partial_cmp(b).unwrap_or(Ordering::Equal)
-                }).map(|(mi, _)| mi).ok_or(EvalError::invalid_input("scores"))?;
+                }).map(|(mi, _)| mi).ok_or(EvalError::undefined_metric("Invalid score"))?;
                 counts[ind][labels[i]] += 1;
                 sum += 1;
             }
@@ -399,7 +399,7 @@ impl MultiConfusionMatrix {
     ///
     pub fn accuracy(&self) -> Result<f64, EvalError> {
         match self.sum {
-            0 => Err(EvalError::undefined_metric("accuracy")),
+            0 => Err(EvalError::undefined_metric("Zero counts in confusion matrix")),
             sum => {
                 let mut correct = 0;
                 for i in 0..self.dim {
@@ -471,7 +471,7 @@ impl MultiConfusionMatrix {
         let den = (s * s - pp).sqrt() * (s * s - tt).sqrt();
 
         if den == 0.0 {
-            Err(EvalError::undefined_metric("rk"))
+            Err(EvalError::undefined_metric("Denominator is zero"))
         } else {
             Ok(num / den)
         }
@@ -500,11 +500,11 @@ impl MultiConfusionMatrix {
         pcp.iter().zip(pcr.iter()).map(|pair| {
             match pair {
                 (Ok(p), Ok(r)) if *p == 0.0 && *r == 0.0 => {
-                    Err(EvalError::undefined_metric("f1"))
+                    Err(EvalError::undefined_metric("Precision, Recall = 0"))
                 },
                 (Ok(p), Ok(r)) => Ok(2.0 * (p * r) / (p + r)),
                 (Err(e), _) | (_, Err(e)) => {
-                    Err(EvalError::UndefinedMetricError(format!("f1 ({})", e)))
+                    Err(EvalError::UndefinedMetricError(format!("Undefined F1 ({})", e)))
                 }
             }
         }).collect()
@@ -642,7 +642,7 @@ fn create_pairs<T: Float>(scores: &Vec<T>,
 
     for i in 0..n {
         if scores[i].is_nan() {
-            return Err(EvalError::NanValueError)
+            return Err(EvalError::undefined_metric("Encountered NaN value in scores"))
         } else if labels[i] {
             num_pos += 1;
         }
@@ -822,10 +822,6 @@ mod tests {
     fn test_roc() {
         let (scores, labels) = binary_data();
         let roc = RocCurve::compute(&scores, &labels).unwrap();
-
-        for point in &roc.points {
-            println!("{:?}", point)
-        }
 
         assert_eq!(roc.dim, 8);
         assert_approx_eq!(roc.points[0].tpr, 1.0 / 3.0);
