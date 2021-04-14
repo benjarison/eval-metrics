@@ -185,24 +185,29 @@ impl <T: Float> RocCurve<T> {
             let mut tp = if pairs[0].1 {1} else {0};
             let mut fp = 1 - tp;
             let mut points = Vec::<RocPoint<T>>::new();
+            let mut last_tpr = T::zero();
 
             for i in 1..n {
                 if pairs[i].0 != pairs[i-1].0 {
                     let tpr = T::from_usize(tp) / T::from_usize(np);
                     let fpr = T::from_usize(fp) / T::from_usize(nn);
-                    let threshold = pairs[i-1].0;
-                    // keep updating the threshold until we get past tpr, fpr = 0
-                    if tpr == T::zero() && fpr == T::zero() {
-                        match points.last_mut() {
-                            Some(mut point) => {
-                                point = &mut RocPoint {tpr, fpr, threshold};
-                            }
-                            _ => ()
-                        }
-                    } else if tpr.is_nan() || fpr.is_nan() {
+                    if tpr.is_nan() || fpr.is_nan() {
                         return Err(EvalError::undefined_metric("Encountered NaN value"))
-                    } else {
-                        points.push(RocPoint {tpr, fpr, threshold})
+                    }
+                    let threshold = pairs[i-1].0;
+                    match points.last_mut() {
+                        Some(mut point) if (point.fpr - fpr).abs() < T::from_f64(1e-10) => {
+                            if point.tpr > last_tpr {
+                                point.tpr = tpr;
+                                point.threshold = threshold;
+                            } else {
+                                points.push(RocPoint {tpr, fpr, threshold});
+                            }
+                        },
+                        _ => {
+                            points.push(RocPoint {tpr, fpr, threshold});
+                            last_tpr = tpr;
+                        }
                     }
                 }
                 if pairs[i].1 {
@@ -213,11 +218,11 @@ impl <T: Float> RocCurve<T> {
             }
 
             match points.last() {
-                Some(point) if point.tpr != T::one() || point.fpr != T::one() => {
+                Some(point) => if point.tpr != T::one() || point.fpr != T::one() {
                     let t = pairs.last().unwrap().0;
                     points.push(RocPoint {tpr: T::one(), fpr: T::one(), threshold: t});
                 },
-                _ => ()
+                _ => return Err(EvalError::undefined_metric("Empty points"))
             }
 
             let dim = points.len();
@@ -234,7 +239,7 @@ impl <T: Float> RocCurve<T> {
             let fpr_diff = self.points[i].fpr - self.points[i-1].fpr;
             let a = self.points[i-1].tpr * fpr_diff;
             let b = (self.points[i].tpr - self.points[i-1].tpr) * fpr_diff / T::from_f64(2.0);
-            sum += (a + b);
+            sum += a + b;
         }
         return Ok(sum)
     }
@@ -881,6 +886,7 @@ mod tests {
 
         let scores2 = vec![0.2, 0.5, 0.5, 0.3];
         let labels2 = vec![false, true, false, true];
+        println!("{:?}", RocCurve::compute(&scores2, &labels2).unwrap());
         assert_approx_eq!(RocCurve::compute(&scores2, &labels2).unwrap().auc().unwrap(), 0.625);
     }
 
