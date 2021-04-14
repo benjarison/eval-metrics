@@ -292,6 +292,7 @@ impl <T: Float> PrCurve<T> {
             let mut tpc = 0;
             let mut fpc = 0;
             let mut points = Vec::<PrPoint<T>>::new();
+            let mut last_rec = T::zero();
 
             for i in 0..n {
                 if pairs[i].1 {
@@ -307,7 +308,10 @@ impl <T: Float> PrCurve<T> {
                         return Err(EvalError::undefined_metric("Encountered NaN value"))
                     }
                     let threshold = pairs[i].0;
-                    points.insert(0, PrPoint {precision: pre, recall: rec, threshold});
+                    if rec != last_rec {
+                        points.push(PrPoint {precision: pre, recall: rec, threshold});
+                    }
+                    last_rec = rec;
                 }
             }
 
@@ -320,13 +324,10 @@ impl <T: Float> PrCurve<T> {
     /// Computes the average precision metric from the PR curve
     ///
     pub fn ap(&self) -> Result<T, EvalError> {
-        let mut avg_pre = match self.points.last() {
-            Some(point) => point.recall * point.precision,
-            _ => return Err(EvalError::undefined_metric("Unable to compute AP"))
-        };
-        for i in (1..self.dim).rev() {
-            let rec_diff = self.points[i-1].recall - self.points[i].recall;
-            avg_pre += rec_diff * self.points[i-1].precision;
+        let mut avg_pre = self.points[0].precision * self.points[0].recall;
+        for i in 1..self.dim {
+            let rec_diff = self.points[i].recall - self.points[i-1].recall;
+            avg_pre += rec_diff * self.points[i].precision;
         }
         return Ok(avg_pre)
     }
@@ -886,7 +887,6 @@ mod tests {
 
         let scores2 = vec![0.2, 0.5, 0.5, 0.3];
         let labels2 = vec![false, true, false, true];
-        println!("{:?}", RocCurve::compute(&scores2, &labels2).unwrap());
         assert_approx_eq!(RocCurve::compute(&scores2, &labels2).unwrap().auc().unwrap(), 0.625);
     }
 
@@ -905,30 +905,15 @@ mod tests {
     fn test_pr() {
         let (scores, labels) = binary_data();
         let pr = PrCurve::compute(&scores, &labels).unwrap();
-        assert_approx_eq!(pr.points[0].precision, 0.375);
-        assert_approx_eq!(pr.points[0].recall, 1.0);
-        assert_approx_eq!(pr.points[0].threshold, 0.1);
-        assert_approx_eq!(pr.points[1].precision, 0.2857142857142857);
+        assert_approx_eq!(pr.points[0].precision, 1.0);
+        assert_approx_eq!(pr.points[0].recall, 1.0 / 3.0);
+        assert_approx_eq!(pr.points[0].threshold, 0.9);
+        assert_approx_eq!(pr.points[1].precision, 2.0 / 3.0);
         assert_approx_eq!(pr.points[1].recall, 2.0 / 3.0);
-        assert_approx_eq!(pr.points[1].threshold, 0.2);
-        assert_approx_eq!(pr.points[2].precision, 1.0 / 3.0);
-        assert_approx_eq!(pr.points[2].recall, 2.0 / 3.0);
-        assert_approx_eq!(pr.points[2].threshold, 0.3);
-        assert_approx_eq!(pr.points[3].precision, 0.4);
-        assert_approx_eq!(pr.points[3].recall, 2.0 / 3.0);
-        assert_approx_eq!(pr.points[3].threshold, 0.4);
-        assert_approx_eq!(pr.points[4].precision, 0.5);
-        assert_approx_eq!(pr.points[4].recall, 2.0 / 3.0);
-        assert_approx_eq!(pr.points[4].threshold, 0.5);
-        assert_approx_eq!(pr.points[5].precision, 2.0 / 3.0);
-        assert_approx_eq!(pr.points[5].recall, 2.0 / 3.0);
-        assert_approx_eq!(pr.points[5].threshold, 0.7);
-        assert_approx_eq!(pr.points[6].precision, 0.5);
-        assert_approx_eq!(pr.points[6].recall, 1.0 / 3.0);
-        assert_approx_eq!(pr.points[6].threshold, 0.8);
-        assert_approx_eq!(pr.points[7].precision, 1.0);
-        assert_approx_eq!(pr.points[7].recall, 1.0 / 3.0);
-        assert_approx_eq!(pr.points[7].threshold, 0.9);
+        assert_approx_eq!(pr.points[1].threshold, 0.7);
+        assert_approx_eq!(pr.points[2].precision, 0.375);
+        assert_approx_eq!(pr.points[2].recall, 1.0);
+        assert_approx_eq!(pr.points[2].threshold, 0.1);
     }
 
     #[test]
