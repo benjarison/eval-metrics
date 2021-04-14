@@ -23,7 +23,10 @@ values of zero in cases of undefined metrics.
 | Recall      | Binary Classification      | Binary Class Recall                                                |
 | F-1         | Binary Classification      | Harmonic Mean of Precision and Recall                              |
 | MCC         | Binary Classification      | Matthews Correlation Coefficient                                   |
-| AUC         | Binary Classification      | Standard Area Under ROC Curve                                      |
+| ROC Curve   | Binary Classification      | Receiver Operating Characteristic Curve                            |
+| AUC         | Binary Classification      | Area Under ROC Curve                                               |
+| PR Curve    | Binary Classification      | Precision-Recall Curve                                             |
+| AP          | Binary Classification      | Average Precision                                                  |
 | Accuracy    | Multi-Class Classification | Multi-Class Accuracy                                               |
 | Precision   | Multi-Class Classification | Multi-Class Precision (requires specified averaging method)        |
 | Recall      | Multi-Class Classification | Multi-Class Recall (requires specified averaging method)           |
@@ -59,11 +62,35 @@ let f1 = matrix.f1()?;
 let mcc = matrix.mcc()?;
 ```
 
-In additional to the metrics derived from the confusion matrix, the AUC (area under the ROC curve) is also supported
-as a standalone function.
+In addition to the metrics derived from the confusion matrix, ROC curves and PR curves can be computed, providing metrics
+such as AUC and AP.
 
 ```rust
-let auc = auc(&scores, &labels)?;
+// construct roc curve
+let roc = RocCurve::compute(&scores, &labels)?;
+// compute auc
+let auc = roc.auc()?;
+// inspect roc curve points
+let points: Vec<RocPoint> = roc.points;
+points.iter().for_each(|point| {
+    println!("{}, {}, {}", 
+             point.tpr, // true positive rate
+             point.fpr, // false positive rate
+             point.threshold); // corresponding score threshold
+});
+
+// construct pr curve
+let pr = PrCurve::compute(&scores, &labels)?;
+// compute average precision
+let ap = pr.ap()?;
+// inspect pr curve points
+let points: Vec<PrPoint> = pr.points;
+points.iter().for_each(|point| {
+    println!("{}, {}, {}", 
+             point.precision, // precision value
+             point.recall, // recall value
+             point.threshold); // corresponding score threshold
+});
 ```
 
 ### Multi-Class Classification
@@ -97,7 +124,7 @@ let wgt_f1 = matrix.f1(&Averaging::Weighted)?;
 let rk = matrix.rk()?;
 ```
 
-In additional to the metrics derived from the confusion matrix, the M-AUC (multi-class AUC) metric as described by
+In addition to the metrics derived from the confusion matrix, the M-AUC (multi-class AUC) metric as described by
 Hand and Till (2001) is provided as a standalone function:
 
 ```rust
