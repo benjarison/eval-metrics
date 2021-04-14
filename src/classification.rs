@@ -819,6 +819,42 @@ mod tests {
     }
 
     #[test]
+    fn test_roc() {
+        let (scores, labels) = binary_data();
+        let roc = RocCurve::compute(&scores, &labels).unwrap();
+
+        for point in &roc.points {
+            println!("{:?}", point)
+        }
+
+        assert_eq!(roc.dim, 8);
+        assert_approx_eq!(roc.points[0].tpr, 1.0 / 3.0);
+        assert_approx_eq!(roc.points[0].fpr, 0.0);
+        assert_approx_eq!(roc.points[0].threshold, 0.9);
+        assert_approx_eq!(roc.points[1].tpr, 1.0 / 3.0);
+        assert_approx_eq!(roc.points[1].fpr, 0.2);
+        assert_approx_eq!(roc.points[1].threshold, 0.8);
+        assert_approx_eq!(roc.points[2].tpr, 2.0 / 3.0);
+        assert_approx_eq!(roc.points[2].fpr, 0.2);
+        assert_approx_eq!(roc.points[2].threshold, 0.7);
+        assert_approx_eq!(roc.points[3].tpr, 2.0 / 3.0);
+        assert_approx_eq!(roc.points[3].fpr, 0.4);
+        assert_approx_eq!(roc.points[3].threshold, 0.5);
+        assert_approx_eq!(roc.points[4].tpr, 2.0 / 3.0);
+        assert_approx_eq!(roc.points[4].fpr, 0.6);
+        assert_approx_eq!(roc.points[4].threshold, 0.4);
+        assert_approx_eq!(roc.points[5].tpr, 2.0 / 3.0);
+        assert_approx_eq!(roc.points[5].fpr, 0.8);
+        assert_approx_eq!(roc.points[5].threshold, 0.3);
+        assert_approx_eq!(roc.points[6].tpr, 2.0 / 3.0);
+        assert_approx_eq!(roc.points[6].fpr, 1.0);
+        assert_approx_eq!(roc.points[6].threshold, 0.2);
+        assert_approx_eq!(roc.points[7].tpr, 1.0);
+        assert_approx_eq!(roc.points[7].fpr, 1.0);
+        assert_approx_eq!(roc.points[7].threshold, 0.1);
+    }
+
+    #[test]
     fn test_roc_empty() {
         assert!(RocCurve::compute(&Vec::<f64>::new(), &Vec::<bool>::new()).is_err());
     }
@@ -861,6 +897,81 @@ mod tests {
         assert_approx_eq!(RocCurve::compute(&scores, &labels1).unwrap().auc().unwrap(), 0.75);
         assert_approx_eq!(RocCurve::compute(&scores, &labels2).unwrap().auc().unwrap(), 0.75);
         assert_approx_eq!(RocCurve::compute(&scores, &labels3).unwrap().auc().unwrap(), 0.75);
+    }
+    
+    #[test]
+    fn test_pr() {
+        let (scores, labels) = binary_data();
+        let pr = PrCurve::compute(&scores, &labels).unwrap();
+        assert_approx_eq!(pr.points[0].precision, 0.375);
+        assert_approx_eq!(pr.points[0].recall, 1.0);
+        assert_approx_eq!(pr.points[0].threshold, 0.1);
+        assert_approx_eq!(pr.points[1].precision, 0.2857142857142857);
+        assert_approx_eq!(pr.points[1].recall, 2.0 / 3.0);
+        assert_approx_eq!(pr.points[1].threshold, 0.2);
+        assert_approx_eq!(pr.points[2].precision, 1.0 / 3.0);
+        assert_approx_eq!(pr.points[2].recall, 2.0 / 3.0);
+        assert_approx_eq!(pr.points[2].threshold, 0.3);
+        assert_approx_eq!(pr.points[3].precision, 0.4);
+        assert_approx_eq!(pr.points[3].recall, 2.0 / 3.0);
+        assert_approx_eq!(pr.points[3].threshold, 0.4);
+        assert_approx_eq!(pr.points[4].precision, 0.5);
+        assert_approx_eq!(pr.points[4].recall, 2.0 / 3.0);
+        assert_approx_eq!(pr.points[4].threshold, 0.5);
+        assert_approx_eq!(pr.points[5].precision, 2.0 / 3.0);
+        assert_approx_eq!(pr.points[5].recall, 2.0 / 3.0);
+        assert_approx_eq!(pr.points[5].threshold, 0.7);
+        assert_approx_eq!(pr.points[6].precision, 0.5);
+        assert_approx_eq!(pr.points[6].recall, 1.0 / 3.0);
+        assert_approx_eq!(pr.points[6].threshold, 0.8);
+        assert_approx_eq!(pr.points[7].precision, 1.0);
+        assert_approx_eq!(pr.points[7].recall, 1.0 / 3.0);
+        assert_approx_eq!(pr.points[7].threshold, 0.9);
+    }
+
+    #[test]
+    fn test_pr_empty() {
+        assert!(PrCurve::compute(&Vec::<f64>::new(), &Vec::<bool>::new()).is_err());
+    }
+
+    #[test]
+    fn test_pr_unequal_length() {
+        assert!(PrCurve::compute(&vec![0.4, 0.5, 0.2], &vec![true, false, true, false]).is_err());
+    }
+
+    #[test]
+    fn test_pr_nan() {
+        assert!(PrCurve::compute(&vec![0.4, 0.5, 0.2, f64::NAN], &vec![true, false, true, false]).is_err());
+    }
+
+    #[test]
+    fn test_pr_constant_label() {
+        let scores = vec![0.1, 0.4, 0.5, 0.7];
+        let labels_true = vec![true; 4];
+        let labels_false = vec![false; 4];
+        assert!(PrCurve::compute(&scores, &labels_true).is_ok());
+        assert!(PrCurve::compute(&scores, &labels_false).is_err());
+    }
+
+    #[test]
+    fn test_ap() {
+        let (scores, labels) = binary_data();
+        assert_approx_eq!(PrCurve::compute(&scores, &labels).unwrap().ap().unwrap(), 0.6805555555555556);
+
+        let scores2 = vec![0.2, 0.5, 0.5, 0.3];
+        let labels2 = vec![false, true, false, true];
+        assert_approx_eq!(PrCurve::compute(&scores2, &labels2).unwrap().ap().unwrap(), 0.58333333333333);
+    }
+
+    #[test]
+    fn test_ap_tied_scores() {
+        let scores = vec![0.1, 0.2, 0.3, 0.3, 0.3, 0.7, 0.8];
+        let labels1 = vec![false, false, true, false, true, false, true];
+        let labels2 = vec![false, false, true, true, false, false, true];
+        let labels3 = vec![false, false, false, true, true, false, true];
+        assert_approx_eq!(PrCurve::compute(&scores, &labels1).unwrap().ap().unwrap(), 0.7333333333333);
+        assert_approx_eq!(PrCurve::compute(&scores, &labels2).unwrap().ap().unwrap(), 0.7333333333333);
+        assert_approx_eq!(PrCurve::compute(&scores, &labels3).unwrap().ap().unwrap(), 0.7333333333333);
     }
 
     #[test]
