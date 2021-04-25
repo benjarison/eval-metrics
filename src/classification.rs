@@ -6,6 +6,7 @@ use crate::error::EvalError;
 ///
 /// Confusion matrix for binary classification
 ///
+#[derive(Copy, Clone, Debug, Eq, PartialEq)]
 pub struct BinaryConfusionMatrix {
     /// true positive count
     pub tpc: usize,
@@ -138,7 +139,7 @@ impl BinaryConfusionMatrix {
 ///
 /// Represents a single point along a roc curve
 ///
-#[derive(Copy, Clone, Debug)]
+#[derive(Copy, Clone, Debug, PartialEq)]
 pub struct RocPoint<T: Float> {
     /// True positive rate
     pub tpr: T,
@@ -248,7 +249,7 @@ impl <T: Float> RocCurve<T> {
 ///
 /// Represents a single point along a precision-recall curve
 ///
-#[derive(Copy, Clone, Debug)]
+#[derive(Copy, Clone, Debug, PartialEq)]
 pub struct PrPoint<T: Float> {
     /// Precision value
     pub precision: T,
@@ -338,6 +339,7 @@ impl <T: Float> PrCurve<T> {
 /// Confusion matrix for multi-class classification, in which predicted counts constitute the rows,
 /// and actual (label) counts constitute the columns
 ///
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct MultiConfusionMatrix {
     /// output dimension
     pub dim: usize,
@@ -617,6 +619,7 @@ pub fn m_auc<T: Float>(scores: &Vec<Vec<T>>, labels: &Vec<usize>) -> Result<T, E
 ///
 /// Specifies the averaging method to use for computing multi-class metrics
 ///
+#[derive(Copy, Clone, Debug, Eq, PartialEq)]
 pub enum Averaging {
     /// Macro average, in which the individual metrics for each class are weighted uniformly
     Macro,
