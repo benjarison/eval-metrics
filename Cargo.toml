@@ -1,11 +1,12 @@
 [package]
 name = "eval-metrics"
 version = "0.1.0"
-authors = ["benjarison"]
+authors = ["Benjamin Harrison"]
 description = "Evaluation metric for machine learning"
-keywords = ["evaluation metrics", "machine learning"]
+keywords = ["evaluation-metrics", "machine-learning"]
 homepage = "https://github.com/benjarison/eval-metrics"
 repository = "https://github.com/benjarison/eval-metrics"
+documentation = "https://docs.rs/eval-metrics"
 readme = "README.md"
 license = "MIT OR Apache-2.0"
 edition = "2018"
