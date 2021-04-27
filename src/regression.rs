@@ -7,8 +7,20 @@ use crate::error::EvalError;
 ///
 /// # Arguments
 ///
-/// * `scores` the score vector
-/// * `label` the label vector
+/// * `scores` - score vector
+/// * `labels` - label vector
+///
+/// # Examples
+///
+/// ```
+/// # use eval_metrics::error::EvalError;
+/// # fn main() -> Result<(), EvalError> {
+/// use eval_metrics::regression::mse;
+/// let scores = vec![2.3, 5.1, -3.2, 7.1, -4.4];
+/// let labels = vec![1.7, 4.3, -4.1, 6.5, -3.2];
+/// let metric = mse(&scores, &labels)?;
+/// # Ok(())}
+/// ```
 ///
 pub fn mse<T: Float>(scores: &Vec<T>, labels: &Vec<T>) -> Result<T, EvalError> {
     util::validate_input(scores, labels).and_then(|_| {
@@ -24,8 +36,20 @@ pub fn mse<T: Float>(scores: &Vec<T>, labels: &Vec<T>) -> Result<T, EvalError> {
 ///
 /// # Arguments
 ///
-/// * `scores` the score vector
-/// * `label` the label vector
+/// * `scores` - score vector
+/// * `labels` - label vector
+///
+/// # Examples
+///
+/// ```
+/// # use eval_metrics::error::EvalError;
+/// # fn main() -> Result<(), EvalError> {
+/// use eval_metrics::regression::rmse;
+/// let scores = vec![2.3, 5.1, -3.2, 7.1, -4.4];
+/// let labels = vec![1.7, 4.3, -4.1, 6.5, -3.2];
+/// let metric = rmse(&scores, &labels)?;
+/// # Ok(())}
+/// ```
 ///
 pub fn rmse<T: Float>(scores: &Vec<T>, labels: &Vec<T>) -> Result<T, EvalError> {
     mse(scores, labels).map(|m| m.sqrt())
@@ -36,8 +60,20 @@ pub fn rmse<T: Float>(scores: &Vec<T>, labels: &Vec<T>) -> Result<T, EvalError> 
 ///
 /// # Arguments
 ///
-/// * `scores` the score vector
-/// * `label` the label vector
+/// * `scores` - score vector
+/// * `labels` - label vector
+///
+/// # Examples
+///
+/// ```
+/// # use eval_metrics::error::EvalError;
+/// # fn main() -> Result<(), EvalError> {
+/// use eval_metrics::regression::mae;
+/// let scores = vec![2.3, 5.1, -3.2, 7.1, -4.4];
+/// let labels = vec![1.7, 4.3, -4.1, 6.5, -3.2];
+/// let metric = mae(&scores, &labels)?;
+/// # Ok(())}
+/// ```
 ///
 pub fn mae<T: Float>(scores: &Vec<T>, labels: &Vec<T>) -> Result<T, EvalError> {
     util::validate_input(scores, labels).and_then(|_| {
@@ -52,8 +88,20 @@ pub fn mae<T: Float>(scores: &Vec<T>, labels: &Vec<T>) -> Result<T, EvalError> {
 ///
 /// # Arguments
 ///
-/// * `scores` the score vector
-/// * `label` the label vector
+/// * `scores` - score vector
+/// * `labels` - label vector
+///
+/// # Examples
+///
+/// ```
+/// # use eval_metrics::error::EvalError;
+/// # fn main() -> Result<(), EvalError> {
+/// use eval_metrics::regression::rsq;
+/// let scores = vec![2.3, 5.1, -3.2, 7.1, -4.4];
+/// let labels = vec![1.7, 4.3, -4.1, 6.5, -3.2];
+/// let metric = rsq(&scores, &labels)?;
+/// # Ok(())}
+/// ```
 ///
 pub fn rsq<T: Float>(scores: &Vec<T>, labels: &Vec<T>) -> Result<T, EvalError> {
     util::validate_input(scores, labels).and_then(|_| {
@@ -76,8 +124,20 @@ pub fn rsq<T: Float>(scores: &Vec<T>, labels: &Vec<T>) -> Result<T, EvalError> {
 ///
 /// # Arguments
 ///
-/// * `scores` the score vector
-/// * `label` the label vector
+/// * `scores` - score vector
+/// * `labels` - label vector
+///
+/// # Examples
+///
+/// ```
+/// # use eval_metrics::error::EvalError;
+/// # fn main() -> Result<(), EvalError> {
+/// use eval_metrics::regression::corr;
+/// let scores = vec![2.3, 5.1, -3.2, 7.1, -4.4];
+/// let labels = vec![1.7, 4.3, -4.1, 6.5, -3.2];
+/// let metric = corr(&scores, &labels)?;
+/// # Ok(())}
+/// ```
 ///
 pub fn corr<T: Float>(scores: &Vec<T>, labels: &Vec<T>) -> Result<T, EvalError> {
 

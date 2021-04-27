@@ -24,13 +24,25 @@ pub struct BinaryConfusionMatrix {
 impl BinaryConfusionMatrix {
 
     ///
-    /// Computes a new binary confusion matrix from the provided scores and vectors
+    /// Computes a new binary confusion matrix from the provided scores and labels
     ///
     /// # Arguments
     ///
-    /// * `scores` a vector of scores scaled to be in the [0, 1] range
-    /// * `labels` a vector of boolean labels
-    /// * `threshold` the decision threshold value for classifying scores
+    /// * `scores` - vector of scores
+    /// * `labels` - vector of boolean labels
+    /// * `threshold` - decision threshold value for classifying scores
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use eval_metrics::error::EvalError;
+    /// # fn main() -> Result<(), EvalError> {
+    /// use eval_metrics::classification::BinaryConfusionMatrix;
+    /// let scores = vec![0.4, 0.7, 0.1, 0.3, 0.9];
+    /// let labels = vec![false, true, false, true, true];
+    /// let matrix = BinaryConfusionMatrix::compute(&scores, &labels, 0.5)?;
+    /// # Ok(())}
+    /// ```
     ///
     pub fn compute<T: Float>(scores: &Vec<T>,
                              labels: &Vec<bool>,
@@ -67,10 +79,10 @@ impl BinaryConfusionMatrix {
     ///
     /// # Arguments
     ///
-    /// * `tpc` true positive count
-    /// * `fpc` false positive count
-    /// * `tnc` true negative count
-    /// * `fnc` false negative count
+    /// * `tpc` - true positive count
+    /// * `fpc` - false positive count
+    /// * `tnc` - true negative count
+    /// * `fnc` - false negative count
     ///
     pub fn with_counts(tpc: usize,
                        fpc: usize,
@@ -175,8 +187,20 @@ impl <T: Float> RocCurve<T> {
     ///
     /// # Arguments
     ///
-    /// * `scores` the vector of scores
-    /// * `labels` the vector of labels
+    /// * `scores` - vector of scores
+    /// * `labels` - vector of labels
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use eval_metrics::error::EvalError;
+    /// # fn main() -> Result<(), EvalError> {
+    /// use eval_metrics::classification::RocCurve;
+    /// let scores = vec![0.4, 0.7, 0.1, 0.3, 0.9];
+    /// let labels = vec![false, true, false, true, true];
+    /// let roc = RocCurve::compute(&scores, &labels)?;
+    /// # Ok(())}
+    /// ```
     ///
     pub fn compute(scores: &Vec<T>, labels: &Vec<bool>) -> Result<RocCurve<T>, EvalError> {
         util::validate_input(scores, labels).and_then(|_| {
@@ -284,8 +308,20 @@ impl <T: Float> PrCurve<T> {
     ///
     /// # Arguments
     ///
-    /// * `scores` the vector of scores
-    /// * `labels` the vector of labels
+    /// * `scores` - vector of scores
+    /// * `labels` - vector of labels
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use eval_metrics::error::EvalError;
+    /// # fn main() -> Result<(), EvalError> {
+    /// use eval_metrics::classification::PrCurve;
+    /// let scores = vec![0.4, 0.7, 0.1, 0.3, 0.9];
+    /// let labels = vec![false, true, false, true, true];
+    /// let pr = PrCurve::compute(&scores, &labels)?;
+    /// # Ok(())}
+    /// ```
     ///
     pub fn compute(scores: &Vec<T>, labels: &Vec<bool>) -> Result<PrCurve<T>, EvalError> {
         util::validate_input(scores, labels).and_then(|_| {
@@ -363,8 +399,28 @@ impl MultiConfusionMatrix {
     ///
     /// # Arguments
     ///
-    /// * `scores` the vector of class scores
-    /// * `labels` the vector of class labels
+    /// * `scores` - vector of class scores
+    /// * `labels` - vector of class labels (indexed at zero)
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use eval_metrics::error::EvalError;
+    /// # fn main() -> Result<(), EvalError> {
+    /// use eval_metrics::classification::MultiConfusionMatrix;
+    /// let scores = vec![
+    ///    vec![0.3, 0.1, 0.6],
+    ///    vec![0.5, 0.2, 0.3],
+    ///    vec![0.2, 0.7, 0.1],
+    ///    vec![0.3, 0.3, 0.4],
+    ///    vec![0.5, 0.1, 0.4],
+    ///    vec![0.8, 0.1, 0.1],
+    ///    vec![0.3, 0.5, 0.2]
+    /// ];
+    /// let labels = vec![2, 1, 1, 2, 0, 2, 0];
+    /// let matrix = MultiConfusionMatrix::compute(&scores, &labels)?;
+    /// # Ok(())}
+    /// ```
     ///
     pub fn compute<T: Float>(scores: &Vec<Vec<T>>,
                              labels: &Vec<usize>) -> Result<MultiConfusionMatrix, EvalError> {
@@ -392,8 +448,23 @@ impl MultiConfusionMatrix {
     ///
     /// # Arguments
     ///
-    /// * `counts` a vector of vector of counts, where each inner vector represents a row in the
+    /// * `counts` - vector of vector of counts, where each inner vector represents a row in the
     /// confusion matrix
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use eval_metrics::error::EvalError;
+    /// # fn main() -> Result<(), EvalError> {
+    /// use eval_metrics::classification::MultiConfusionMatrix;
+    /// let counts = vec![
+    ///     vec![8, 3, 2],
+    ///     vec![1, 5, 3],
+    ///     vec![2, 1, 9]
+    /// ];
+    /// let matrix = MultiConfusionMatrix::with_counts(counts)?;
+    /// # Ok(())}
+    /// ```
     ///
     pub fn with_counts(counts: Vec<Vec<usize>>) -> Result<MultiConfusionMatrix, EvalError> {
         let dim = counts.len();
@@ -429,7 +500,7 @@ impl MultiConfusionMatrix {
     ///
     /// # Arguments
     ///
-    /// * `avg` the averaging method, which can be either 'Macro' or 'Weighted'
+    /// * `avg` - averaging method, which can be either 'Macro' or 'Weighted'
     ///
     pub fn precision(&self, avg: &Averaging) -> Result<f64, EvalError> {
         self.agg_metric(&self.per_class_precision(), avg)
@@ -440,7 +511,7 @@ impl MultiConfusionMatrix {
     ///
     /// # Arguments
     ///
-    /// * `avg` the averaging method, which can be either 'Macro' or 'Weighted'
+    /// * `avg` - averaging method, which can be either 'Macro' or 'Weighted'
     ///
     pub fn recall(&self, avg: &Averaging) -> Result<f64, EvalError> {
         self.agg_metric(&self.per_class_recall(), avg)
@@ -451,7 +522,7 @@ impl MultiConfusionMatrix {
     ///
     /// # Arguments
     ///
-    /// * `avg` the averaging method, which can be either 'Macro' or 'Weighted'
+    /// * `avg` - averaging method, which can be either 'Macro' or 'Weighted'
     ///
     pub fn f1(&self, avg: &Averaging) -> Result<f64, EvalError> {
         self.agg_metric(&self.per_class_f1(), avg)
@@ -597,9 +668,28 @@ impl std::fmt::Display for MultiConfusionMatrix {
 ///
 /// # Arguments
 ///
-/// * `scores` the vector of class scores
-/// * `labels` the vector of class labels
+/// * `scores` - vector of class scores
+/// * `labels` - vector of class labels
 ///
+/// # Examples
+///
+/// ```
+/// # use eval_metrics::error::EvalError;
+/// # fn main() -> Result<(), EvalError> {
+/// use eval_metrics::classification::m_auc;
+/// let scores = vec![
+///    vec![0.3, 0.1, 0.6],
+///    vec![0.5, 0.2, 0.3],
+///    vec![0.2, 0.7, 0.1],
+///    vec![0.3, 0.3, 0.4],
+///    vec![0.5, 0.1, 0.4],
+///    vec![0.8, 0.1, 0.1],
+///    vec![0.3, 0.5, 0.2]
+/// ];
+/// let labels = vec![2, 1, 1, 2, 0, 2, 0];
+/// let metric = m_auc(&scores, &labels)?;
+/// # Ok(())}
+/// ```
 
 pub fn m_auc<T: Float>(scores: &Vec<Vec<T>>, labels: &Vec<usize>) -> Result<T, EvalError> {
 
