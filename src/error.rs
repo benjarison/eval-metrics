@@ -4,40 +4,56 @@
 ///
 #[derive(Clone, Debug)]
 pub enum EvalError {
-    InvalidInputError(String),
-    UndefinedMetricError(String)
+    /// An error that results for invalid user input, such as mismatched data lengths
+    InvalidInput(String),
+    /// An error that indicates that the metric is undefined for some numeric reason
+    UndefinedMetric(String)
 }
 
 impl EvalError {
 
     ///
-    /// Constructs a new InvalidInputError with the provided message
+    /// Constructs a new invalid input error with the provided message
     ///
     /// # Arguments
     ///
     /// * `msg` the detailed error message
     ///
     pub fn invalid_input(msg: &str) -> EvalError {
-        EvalError::InvalidInputError(String::from(msg))
+        EvalError::InvalidInput(String::from(msg))
     }
 
     ///
-    /// Constructs a new UndefinedMetricError with the provided metric name
+    /// Constructs a new undefined metric error with the provided metric name
     ///
     /// # Arguments
     ///
     /// * `metric` the metric name
     ///
     pub fn undefined_metric(msg: &str) -> EvalError {
-        EvalError::UndefinedMetricError(String::from(msg))
+        EvalError::UndefinedMetric(String::from(msg))
+    }
+
+    ///
+    /// Constructs a new undefined metric error specifically for encountered infinite/NaN values
+    ///
+    pub fn infinite_value() -> EvalError {
+        EvalError::undefined_metric("Infinite or NaN value")
+    }
+
+    ///
+    /// Constructs a new undefined metric error due to constant input data
+    ///
+    pub fn constant_input_data() -> EvalError {
+        EvalError::undefined_metric("Input data is constant")
     }
 }
 
 impl std::fmt::Display for EvalError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            EvalError::InvalidInputError(msg) => write!(f, "Invalid input: {}", msg),
-            EvalError::UndefinedMetricError(msg) => write!(f, "Undefined metric: {}", msg)
+            EvalError::InvalidInput(msg) => write!(f, "Invalid input: {}", msg),
+            EvalError::UndefinedMetric(msg) => write!(f, "Undefined metric: {}", msg)
         }
     }
 }

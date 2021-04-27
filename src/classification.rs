@@ -39,8 +39,8 @@ impl BinaryConfusionMatrix {
         util::validate_input(scores, labels).and_then(|_| {
             let mut counts = [0, 0, 0, 0];
             for (&score, &label) in scores.iter().zip(labels) {
-                if score.is_nan() {
-                    return Err(EvalError::undefined_metric("Encountered NaN value in scores"))
+                if !score.is_finite() {
+                    return Err(EvalError::infinite_value())
                 } else if score >= threshold && label {
                     counts[3] += 1;
                 } else if score >= threshold {
@@ -86,7 +86,7 @@ impl BinaryConfusionMatrix {
     pub fn accuracy(&self) -> Result<f64, EvalError> {
         let num = self.tpc + self.tnc;
         match self.sum {
-            0 => Err(EvalError::undefined_metric("TPC + TNC = 0")),
+            0 => Err(EvalError::undefined_metric("Unable to compute accuracy")),
             sum => Ok(num as f64 / sum as f64)
         }
     }
@@ -96,7 +96,7 @@ impl BinaryConfusionMatrix {
     ///
     pub fn precision(&self) -> Result<f64, EvalError> {
         match self.tpc + self.fpc {
-            0 => Err(EvalError::undefined_metric("TPC + FPC = 0")),
+            0 => Err(EvalError::undefined_metric("Unable to compute precision")),
             den => Ok((self.tpc as f64) / den as f64)
         }
     }
@@ -106,7 +106,7 @@ impl BinaryConfusionMatrix {
     ///
     pub fn recall(&self) -> Result<f64, EvalError> {
         match self.tpc + self.fnc {
-            0 => Err(EvalError::undefined_metric("TPC + FNC = 0")),
+            0 => Err(EvalError::undefined_metric("Unable to compute recall")),
             den => Ok((self.tpc as f64) / den as f64)
         }
     }
@@ -117,9 +117,8 @@ impl BinaryConfusionMatrix {
     pub fn f1(&self) -> Result<f64, EvalError> {
         match (self.precision(), self.recall()) {
             (Ok(p), Ok(r)) => Ok(2.0 * (p * r) / (p + r)),
-            (Err(_), _) | (_, Err(_)) => {
-                Err(EvalError::undefined_metric("Unable to compute F1 due to precision/recall"))
-            }
+            (Err(e), _) => Err(e),
+            (_, Err(e)) => Err(e)
         }
     }
 
@@ -131,7 +130,7 @@ impl BinaryConfusionMatrix {
         let s = (self.tpc + self.fnc) as f64 / n;
         let p = (self.tpc + self.fpc) as f64 / n;
         match (p * s * (1.0 - s) * (1.0 - p)).sqrt() {
-            den if den == 0.0 => Err(EvalError::undefined_metric("Denominator is zero")),
+            den if den == 0.0 => Err(EvalError::undefined_metric("Unable to compute MCC")),
             den => Ok(((self.tpc as f64 / n) - s * p) / den)
         }
     }
@@ -201,8 +200,8 @@ impl <T: Float> RocCurve<T> {
                 if pairs[i].0 != pairs[i-1].0 {
                     let tpr = T::from_usize(tp) / T::from_usize(np);
                     let fpr = T::from_usize(fp) / T::from_usize(nn);
-                    if tpr.is_nan() || fpr.is_nan() {
-                        return Err(EvalError::undefined_metric("Encountered NaN value"))
+                    if !tpr.is_finite() || !fpr.is_finite() {
+                        return Err(EvalError::infinite_value())
                     }
                     let threshold = pairs[i-1].0;
                     match points.last_mut() {
@@ -227,12 +226,11 @@ impl <T: Float> RocCurve<T> {
                 }
             }
 
-            match points.last() {
-                Some(point) => if point.tpr != T::one() || point.fpr != T::one() {
+            if let Some(point) = points.last() {
+                if point.tpr != T::one() || point.fpr != T::one() {
                     let t = pairs.last().unwrap().0;
                     points.push(RocPoint {tpr: T::one(), fpr: T::one(), threshold: t});
-                },
-                _ => return Err(EvalError::undefined_metric("Empty points"))
+                }
             }
 
             let dim = points.len();
@@ -314,8 +312,8 @@ impl <T: Float> PrCurve<T> {
                 if (i < n-1 && pairs[i].0 != pairs[i+1].0) || i == n-1 {
                     let pre = T::from_usize(tpc) / T::from_usize(tpc + fpc);
                     let rec = T::from_usize(tpc) / T::from_usize(tpc + fnc);
-                    if pre.is_nan() || rec.is_nan() {
-                        return Err(EvalError::undefined_metric("Encountered NaN value"))
+                    if !pre.is_finite() || !rec.is_finite() {
+                        return Err(EvalError::infinite_value())
                     }
                     let threshold = pairs[i].0;
                     if rec != last_rec {
@@ -376,12 +374,12 @@ impl MultiConfusionMatrix {
             let mut counts = vec![vec![0; dim]; dim];
             let mut sum = 0;
             for (i, s) in scores.iter().enumerate() {
-                if s.iter().any(|v| v.is_nan()) {
-                    return Err(EvalError::undefined_metric("Encountered NaN value in scores"))
+                if s.iter().any(|v| !v.is_finite()) {
+                    return Err(EvalError::infinite_value())
                 }
                 let ind = s.iter().enumerate().max_by(|(_, a), (_, b)| {
                     a.partial_cmp(b).unwrap_or(Ordering::Equal)
-                }).map(|(mi, _)| mi).ok_or(EvalError::undefined_metric("Invalid score"))?;
+                }).map(|(mi, _)| mi).ok_or(EvalError::constant_input_data())?;
                 counts[ind][labels[i]] += 1;
                 sum += 1;
             }
@@ -403,9 +401,8 @@ impl MultiConfusionMatrix {
         for row in &counts {
             sum += row.iter().sum::<usize>();
             if row.len() != dim {
-                return Err(EvalError::InvalidInputError(
-                    format!("Inconsistent column length ({})", row.len())
-                ))
+                let msg = format!("Inconsistent column length ({})", row.len());
+                return Err(EvalError::InvalidInput(msg));
             }
         }
         Ok(MultiConfusionMatrix {dim, counts, sum})
@@ -416,7 +413,7 @@ impl MultiConfusionMatrix {
     ///
     pub fn accuracy(&self) -> Result<f64, EvalError> {
         match self.sum {
-            0 => Err(EvalError::undefined_metric("Zero counts in confusion matrix")),
+            0 => Err(EvalError::undefined_metric("Unable to compute accuracy")),
             sum => {
                 let mut correct = 0;
                 for i in 0..self.dim {
@@ -488,7 +485,7 @@ impl MultiConfusionMatrix {
         let den = (s * s - pp).sqrt() * (s * s - tt).sqrt();
 
         if den == 0.0 {
-            Err(EvalError::undefined_metric("Denominator is zero"))
+            Err(EvalError::undefined_metric("Unable to compute Rk"))
         } else {
             Ok(num / den)
         }
@@ -517,11 +514,11 @@ impl MultiConfusionMatrix {
         pcp.iter().zip(pcr.iter()).map(|pair| {
             match pair {
                 (Ok(p), Ok(r)) if *p == 0.0 && *r == 0.0 => {
-                    Err(EvalError::undefined_metric("Precision, Recall = 0"))
+                    Err(EvalError::undefined_metric("Unable to compute F1 (precision, recall = 0)"))
                 },
                 (Ok(p), Ok(r)) => Ok(2.0 * (p * r) / (p + r)),
                 (Err(e), _) | (_, Err(e)) => {
-                    Err(EvalError::UndefinedMetricError(format!("Undefined F1 ({})", e)))
+                    Err(EvalError::UndefinedMetric(format!("Unable to compute F1 ({})", e)))
                 }
             }
         }).collect()
@@ -546,7 +543,7 @@ impl MultiConfusionMatrix {
                 }
             }) - a;
             match a + b {
-                0 => Err(EvalError::undefined_metric(metric.name())),
+                0 => Err(EvalError::UndefinedMetric(format!("Unable to compute {}", metric.name()))),
                 den => Ok(a as f64 / den as f64)
             }
         }).collect()
@@ -670,8 +667,8 @@ fn create_pairs<T: Float>(scores: &Vec<T>,
     let mut num_pos = 0;
 
     for i in 0..n {
-        if scores[i].is_nan() {
-            return Err(EvalError::undefined_metric("Encountered NaN value in scores"))
+        if !scores[i].is_finite() {
+            return Err(EvalError::infinite_value())
         } else if labels[i] {
             num_pos += 1;
         }

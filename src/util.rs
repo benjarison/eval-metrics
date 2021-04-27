@@ -23,16 +23,16 @@ pub fn validate_input<T, U>(scores: &Vec<T>, labels: &Vec<U>) -> Result<(), Eval
 }
 
 ///
-/// Check for the presence of a NaN value and return an error if found
+/// Check if the provided value is finite
 ///
 /// # Arguments
 ///
 /// * `value` the float value to check
 ///
-pub fn check_nan<T: Float>(value: T) -> Result<T, EvalError> {
-    if value.is_nan() {
-        Err(EvalError::undefined_metric("Encountered NaN value"))
-    } else {
+pub fn check_finite<T: Float>(value: T) -> Result<T, EvalError> {
+    if value.is_finite() {
         Ok(value)
+    } else {
+        Err(EvalError::infinite_value())
     }
 }

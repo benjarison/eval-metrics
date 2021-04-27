@@ -16,7 +16,7 @@ pub fn mse<T: Float>(scores: &Vec<T>, labels: &Vec<T>) -> Result<T, EvalError> {
             let diff = a - b;
             sum + (diff * diff)
         }) / T::from_usize(scores.len()))
-    }).and_then(util::check_nan)
+    }).and_then(util::check_finite)
 }
 
 ///
@@ -44,7 +44,7 @@ pub fn mae<T: Float>(scores: &Vec<T>, labels: &Vec<T>) -> Result<T, EvalError> {
         Ok(scores.iter().zip(labels.iter()).fold(T::zero(), |sum, (&a, &b)| {
             sum + (a - b).abs()
         }) / T::from_usize(scores.len()))
-    }).and_then(util::check_nan)
+    }).and_then(util::check_finite)
 }
 
 ///
@@ -64,7 +64,7 @@ pub fn rsq<T: Float>(scores: &Vec<T>, labels: &Vec<T>) -> Result<T, EvalError> {
             sse + (label - label_mean) * (label - label_mean)
         }) / T::from_usize(length);
         if den == T::zero() {
-            Err(EvalError::undefined_metric("Constant data vector"))
+            Err(EvalError::constant_input_data())
         } else {
             mse(scores, labels).map(|m| T::one() - (m / den))
         }
@@ -100,8 +100,8 @@ pub fn corr<T: Float>(scores: &Vec<T>, labels: &Vec<T>) -> Result<T, EvalError> 
         });
 
         match (sxx * syy).sqrt() {
-            den if den == T::zero() => Err(EvalError::undefined_metric("Constant data vector")),
-            den => util::check_nan(sxy / den)
+            den if den == T::zero() => Err(EvalError::constant_input_data()),
+            den => util::check_finite(sxy / den)
         }
     })
 }
