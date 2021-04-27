@@ -17,7 +17,7 @@ impl EvalError {
     ///
     /// # Arguments
     ///
-    /// * `msg` the detailed error message
+    /// * `msg` - detailed error message
     ///
     pub fn invalid_input(msg: &str) -> EvalError {
         EvalError::InvalidInput(String::from(msg))
@@ -28,7 +28,7 @@ impl EvalError {
     ///
     /// # Arguments
     ///
-    /// * `metric` the metric name
+    /// * `msg` - detailed error message
     ///
     pub fn undefined_metric(msg: &str) -> EvalError {
         EvalError::UndefinedMetric(String::from(msg))
