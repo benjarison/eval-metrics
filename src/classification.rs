@@ -679,7 +679,7 @@ fn create_pairs<T: Float>(scores: &Vec<T>,
 }
 
 fn sort_pairs_descending<T: Float>(pairs: &mut Vec<(T, bool)>) {
-    pairs.sort_unstable_by(|(s1, l1), (s2, l2)| {
+    pairs.sort_unstable_by(|(s1, _), (s2, _)| {
         if s1 > s2 {
             Ordering::Less
         } else if s1 < s2 {

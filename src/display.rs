@@ -39,7 +39,7 @@ fn write_cm_top_rows(outcomes: &Vec<String>,
     // 2nd row
     fill_char(' ', prediction_wing_length, buffer);
     buffer.push('|');
-    buffer.push_str(center("Label", (outcomes.len() * padded_outcome_length - 1)).as_str());
+    buffer.push_str(center("Label", outcomes.len() * padded_outcome_length - 1).as_str());
     buffer.push_str("|\n");
 
     // 3rd row
