@@ -1,3 +1,7 @@
+//!
+//! Provides support for both binary and multi-class classification metrics
+//!
+
 use std::cmp::Ordering;
 use crate::util;
 use crate::numeric::Float;

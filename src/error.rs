@@ -1,6 +1,9 @@
+//!
+//! Details evaluation error types
+//!
 
 ///
-/// Enumerated evaluation errors
+/// Evaluation error enumeration
 ///
 #[derive(Clone, Debug)]
 pub enum EvalError {

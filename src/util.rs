@@ -7,8 +7,8 @@ use crate::numeric::Float;
 ///
 /// # Arguments
 ///
-/// * `scores` the vector of scores
-/// * `labels` the vector of labels
+/// * `scores` - vector of scores
+/// * `labels` - vector of labels
 ///
 pub fn validate_input<T, U>(scores: &Vec<T>, labels: &Vec<U>) -> Result<(), EvalError> {
     if scores.is_empty() {
@@ -27,7 +27,7 @@ pub fn validate_input<T, U>(scores: &Vec<T>, labels: &Vec<U>) -> Result<(), Eval
 ///
 /// # Arguments
 ///
-/// * `value` the float value to check
+/// * `value` - float value to check
 ///
 pub fn check_finite<T: Float>(value: T) -> Result<T, EvalError> {
     if value.is_finite() {

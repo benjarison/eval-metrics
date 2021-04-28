@@ -1,3 +1,7 @@
+//!
+//! Provides support for regression metrics
+//!
+
 use crate::util;
 use crate::numeric::Float;
 use crate::error::EvalError;
