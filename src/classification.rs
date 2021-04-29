@@ -92,8 +92,10 @@ impl BinaryConfusionMatrix {
                        fpc: usize,
                        tnc: usize,
                        fnc: usize) -> Result<BinaryConfusionMatrix, EvalError> {
-        // keep this as a Result in case of future implementation changes
-        Ok(BinaryConfusionMatrix {tpc, fpc, tnc, fnc, sum: tpc + fpc + tnc + fnc})
+        match tpc + fpc + tnc + fnc {
+            0 => Err(EvalError::invalid_input("Confusion matrix has all zero counts")),
+            sum => Ok(BinaryConfusionMatrix {tpc, fpc, tnc, fnc, sum})
+        }
     }
 
     ///
@@ -843,6 +845,7 @@ mod tests {
         assert_eq!(matrix.tnc, 5);
         assert_eq!(matrix.fnc, 3);
         assert_eq!(matrix.sum, 14);
+        assert!(BinaryConfusionMatrix::with_counts(0, 0, 0, 0).is_err())
     }
 
     #[test]
