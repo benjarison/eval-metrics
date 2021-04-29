@@ -36,6 +36,12 @@ impl BinaryConfusionMatrix {
     /// * `labels` - vector of boolean labels
     /// * `threshold` - decision threshold value for classifying scores
     ///
+    /// # Errors
+    ///
+    /// An invalid input error will be returned if either scores or labels are empty, or if their
+    /// lengths do not match. An undefined metric error will be returned if scores contain any value
+    /// that is not finite.
+    ///
     /// # Examples
     ///
     /// ```
@@ -88,6 +94,10 @@ impl BinaryConfusionMatrix {
     /// * `tnc` - true negative count
     /// * `fnc` - false negative count
     ///
+    /// # Errors
+    ///
+    /// An invalid input error will be returned if all provided counts are zero
+    ///
     pub fn with_counts(tpc: usize,
                        fpc: usize,
                        tnc: usize,
@@ -104,6 +114,7 @@ impl BinaryConfusionMatrix {
     pub fn accuracy(&self) -> Result<f64, EvalError> {
         let num = self.tpc + self.tnc;
         match self.sum {
+            // This should never happen as long a we prevent empty confusion matrices
             0 => Err(EvalError::undefined_metric("Unable to compute accuracy")),
             sum => Ok(num as f64 / sum as f64)
         }
@@ -196,6 +207,13 @@ impl <T: Float> RocCurve<T> {
     /// * `scores` - vector of scores
     /// * `labels` - vector of labels
     ///
+    /// # Errors
+    ///
+    /// An invalid input error will be returned if either scores or labels are empty or contain a
+    /// single data point, or if their lengths do not match. An undefined metric error will be
+    /// returned if scores contain any value that is not finite, if scores are all constant, or if
+    /// labels are all constant.
+    ///
     /// # Examples
     ///
     /// ```
@@ -220,7 +238,6 @@ impl <T: Float> RocCurve<T> {
             let (mut pairs, np) = create_pairs(scores, labels)?;
             let nn = n - np;
             sort_pairs_descending(&mut pairs);
-
             let mut tp = if pairs[0].1 {1} else {0};
             let mut fp = 1 - tp;
             let mut points = Vec::<RocPoint<T>>::new();
@@ -263,8 +280,10 @@ impl <T: Float> RocCurve<T> {
                 }
             }
 
-            let dim = points.len();
-            Ok(RocCurve {points, dim})
+            match points.len() {
+                0 => Err(EvalError::constant_input_data()),
+                dim => Ok(RocCurve {points, dim})
+            }
         })
     }
 
@@ -316,6 +335,12 @@ impl <T: Float> PrCurve<T> {
     ///
     /// * `scores` - vector of scores
     /// * `labels` - vector of labels
+    ///
+    /// # Errors
+    ///
+    /// An invalid input error will be returned if either scores or labels are empty or contain a
+    /// single data point, or if their lengths do not match. An undefined metric error will be
+    /// returned if scores contain any value that is not finite, or if labels are all false.
     ///
     /// # Examples
     ///
@@ -408,6 +433,12 @@ impl MultiConfusionMatrix {
     /// * `scores` - vector of class scores
     /// * `labels` - vector of class labels (indexed at zero)
     ///
+    /// # Errors
+    ///
+    /// An invalid input error will be returned if either scores or labels are empty, or if their
+    /// lengths do not match. An undefined metric error will be returned if scores contain any value
+    /// that is not finite.
+    ///
     /// # Examples
     ///
     /// ```
@@ -457,6 +488,11 @@ impl MultiConfusionMatrix {
     /// * `counts` - vector of vector of counts, where each inner vector represents a row in the
     /// confusion matrix
     ///
+    /// # Errors
+    ///
+    /// An invalid input error will be returned if the counts are not a square matrix, or if the
+    /// counts are all zero
+    ///
     /// # Examples
     ///
     /// ```
@@ -482,7 +518,11 @@ impl MultiConfusionMatrix {
                 return Err(EvalError::InvalidInput(msg));
             }
         }
-        Ok(MultiConfusionMatrix {dim, counts, sum})
+        if sum == 0 {
+            Err(EvalError::invalid_input("Confusion matrix has all zero counts"))
+        } else {
+            Ok(MultiConfusionMatrix {dim, counts, sum})
+        }
     }
 
     ///
@@ -676,6 +716,13 @@ impl std::fmt::Display for MultiConfusionMatrix {
 ///
 /// * `scores` - vector of class scores
 /// * `labels` - vector of class labels
+///
+/// # Errors
+///
+/// An invalid input error will be returned if either scores or labels are empty or contain a
+/// single data point, or if their lengths do not match. An undefined metric error will be
+/// returned if scores contain any value that is not finite, or if any pairwise roc curve is not
+/// defined for all distinct class label pairs.
 ///
 /// # Examples
 ///
@@ -995,6 +1042,13 @@ mod tests {
         let labels_false = vec![false; 4];
         assert!(RocCurve::compute(&scores, &labels_true).is_err());
         assert!(RocCurve::compute(&scores, &labels_false).is_err());
+    }
+
+    #[test]
+    fn test_roc_constant_score() {
+        let scores = vec![0.4, 0.4, 0.4, 0.4];
+        let labels = vec![true, false, true, false];
+        assert!(RocCurve::compute(&scores, &labels).is_err());
     }
 
     #[test]
