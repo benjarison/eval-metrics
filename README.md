@@ -4,15 +4,15 @@ Evaluation metrics for machine learning
 
 ## Design
 
-The goal of this library is to serve as a very lightweight and intuitive collection of functions for computing 
-evaluation metrics, with an emphasis on efficiency and explicitly defined behavior. Classification metrics like 
-accuracy, precision, recall, and f1 can all be computed (cheaply) from an instantiated `BinaryConfusionMatrix` or 
-`MultiConfusionMatrix`. The distinction between binary and multi-class classification is made explicit to underscore 
-the fact that these metrics are naturally formulated for the binary case, and that some require additional assumptions 
-(namely averaging methods) in the multi-class case. `Result`s are used as return types for all metrics, reflecting the
-fact that evaluation metrics can fail to be defined for any number of reasons. If a metric is not well defined, then an 
-`Err` type will be returned. Note that this is inherently more conservative than some other libraries which may impute 
-values of zero in cases of undefined metrics. 
+The goal of this library is to serve as a lightweight and intuitive collection of functions for computing evaluation 
+metrics commonly used in machine learning. Metrics are broken out into two modules, one for classification and one for 
+regression. For classification, metrics like accuracy, precision, recall, and f1 can all be computed (cheaply) from an 
+instantiated `BinaryConfusionMatrix` or `MultiConfusionMatrix`. The distinction between binary and multi-class 
+classification is made explicit to underscore the fact that these metrics are naturally formulated for the binary case, 
+and that some require additional assumptions (namely averaging methods) in the multi-class case. `Result`s are used as 
+return types for all metrics, reflecting the fact that evaluation metrics can fail to be defined for a variety of 
+reasons. If a metric is not well defined, then an `Err` type will be returned. Note that this is inherently more 
+conservative than some other libraries which may impute default values in certain cases where a metric is undefined.
 
 ## Supported Metrics
 
@@ -28,9 +28,9 @@ values of zero in cases of undefined metrics.
 | PR Curve    | Binary Classification      | Precision-Recall Curve                                             |
 | AP          | Binary Classification      | Average Precision                                                  |
 | Accuracy    | Multi-Class Classification | Multi-Class Accuracy                                               |
-| Precision   | Multi-Class Classification | Multi-Class Precision (requires specified averaging method)        |
-| Recall      | Multi-Class Classification | Multi-Class Recall (requires specified averaging method)           |
-| F-1         | Multi-Class Classification | Multi-Class F1 (requires specified averaging method)               |
+| Precision   | Multi-Class Classification | Multi-Class Precision                                              |
+| Recall      | Multi-Class Classification | Multi-Class Recall                                                 |
+| F-1         | Multi-Class Classification | Multi-Class F1                                                     |
 | Rk          | Multi-Class Classification | K-Category Correlation Coefficient as described by Gorodkin (2004) |
 | M-AUC       | Multi-Class Classification | Multi-Class AUC as described by Hand and Till (2001)               |
 | RMSE        | Regression                 | Root Mean Squared Error                                            |
@@ -113,7 +113,7 @@ points.iter().for_each(|point| {
 ### Multi-Class Classification
 
 The `MultiConfusionMatrix` struct provides functionality for computing common multi-class classification metrics. 
-Additionally, averaging methods must be explicitly provided for these metrics.
+Additionally, averaging methods must be explicitly provided for several of these metrics.
 
 ```rust
 let scores = vec![
