@@ -61,6 +61,23 @@ let rec = matrix.recall()?;
 let f1 = matrix.f1()?;
 let mcc = matrix.mcc()?;
 ```
+The matrix can be printed to the console as well:
+
+```rust
+let matrix = BinaryConfusionMatrix::compute(&scores, &labels, threshold)?;
+println!("{}", matrix);
+```
+```
+                            o=========================o
+                            |          Label          |
+                            o=========================o
+                            |  Positive  |  Negative  |
+o==============o============o============|============o
+|              |  Positive  |    2532    |    2492    |
+|  Prediction  |============|------------|------------|
+|              |  Negative  |    2457    |    2519    |
+o==============o============o=========================o
+```
 
 In addition to the metrics derived from the confusion matrix, ROC curves and PR curves can be computed, providing metrics
 such as AUC and AP.
@@ -122,6 +139,25 @@ let wgt_rec = matrix.recall(&Averaging::Weighted)?;
 let mac_f1 = matrix.f1(&Averaging::Macro)?;
 let wgt_f1 = matrix.f1(&Averaging::Weighted)?;
 let rk = matrix.rk()?;
+```
+The matrix can be printed to the console as well:
+
+```rust
+let matrix = MultiConfusionMatrix::compute(&scores, &labels)?;
+println!("{}", matrix);
+```
+```
+                           o===================================o
+                           |               Label               |
+                           o===================================o
+                           |  Class-1  |  Class-2  |  Class-3  |
+o==============o===========o===========|===========|===========o
+|              |  Class-1  |   1138    |   1126    |   1084    |
+|              |===========|-----------|-----------|-----------|
+|  Prediction  |  Class-2  |   1078    |   1147    |   1126    |
+|              |===========|-----------|-----------|-----------|
+|              |  Class-3  |   1107    |   1092    |   1102    |
+o==============o===========o===================================o
 ```
 
 In addition to the metrics derived from the confusion matrix, the M-AUC (multi-class AUC) metric as described by
