@@ -469,6 +469,10 @@ impl MultiConfusionMatrix {
             for (i, s) in scores.iter().enumerate() {
                 if s.iter().any(|v| !v.is_finite()) {
                     return Err(EvalError::infinite_value())
+                } else if s.len() != dim {
+                    return Err(EvalError::invalid_input("Inconsistent score dimension"))
+                } else if labels[i] >= dim {
+                    return Err(EvalError::invalid_input("Labels have more classes than scores"))
                 }
                 let ind = s.iter().enumerate().max_by(|(_, a), (_, b)| {
                     a.partial_cmp(b).unwrap_or(Ordering::Equal)
@@ -1158,6 +1162,20 @@ mod tests {
     fn test_multi_confusion_matrix_nan() {
         assert!(MultiConfusionMatrix::compute(&vec![vec![0.2, 0.4, 0.4], vec![0.5, 0.1, 0.4], vec![0.3, 0.7, f64::NAN]],
                                               &vec![2, 1, 0]).is_err());
+    }
+
+    #[test]
+    fn test_multi_confusion_matrix_inconsistent_score_dims() {
+        let scores = vec![vec![0.2, 0.4, 0.4], vec![0.5, 0.1, 0.4], vec![0.3, 0.7]];
+        let labels = vec![2, 1, 0];
+        assert!(MultiConfusionMatrix::compute(&scores, &labels).is_err());
+    }
+
+    #[test]
+    fn test_multi_confusion_matrix_score_label_dim_mismatch() {
+        let scores = vec![vec![0.2, 0.4, 0.4], vec![0.5, 0.1, 0.4], vec![0.3, 0.2, 0.5]];
+        let labels = vec![2, 3, 0];
+        assert!(MultiConfusionMatrix::compute(&scores, &labels).is_err());
     }
 
     #[test]
