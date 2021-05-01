@@ -44,9 +44,9 @@ fn write_cm_top_rows(outcomes: &Vec<String>,
 
     // 3rd row
     fill_char(' ', prediction_wing_length, buffer);
-    buffer.push('|');
+    buffer.push('o');
     fill_char('=', outcomes.len() * padded_outcome_length - 1, buffer);
-    buffer.push_str("|\n");
+    buffer.push_str("o\n");
 
     // 4th row
     fill_char(' ', prediction_wing_length, buffer);
@@ -59,7 +59,8 @@ fn write_cm_top_rows(outcomes: &Vec<String>,
 
     // 5th row
     buffer.push('o');
-    fill_char('=', prediction_wing_length - 1, buffer);
+    buffer.push_str("==============o");
+    fill_char('=', prediction_wing_length - 16, buffer);
     buffer.push('o');
     for _ in 1..outcomes.len() {
         fill_char('=', padded_outcome_length - 1, buffer);
@@ -104,7 +105,8 @@ fn write_cm_data_rows(counts: &Vec<Vec<usize>>,
             buffer.push('\n');
         } else {
             buffer.push('o');
-            fill_char('=', prediction_wing_length - 1, buffer);
+            buffer.push_str("==============o");
+            fill_char('=', prediction_wing_length - 16, buffer);
             buffer.push('o');
             fill_char('=', padded_outcome_length * outcomes.len() - 1, buffer);
             buffer.push('o');
