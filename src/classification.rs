@@ -169,7 +169,7 @@ impl std::fmt::Display for BinaryConfusionMatrix {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let counts = vec![vec![self.tpc, self.fpc], vec![self.fnc, self.tnc]];
         let outcomes = vec![String::from("Positive"), String::from("Negative")];
-        write!(f, "{}", display::stringify(&counts, &outcomes))
+        write!(f, "{}", display::stringify_confusion_matrix(&counts, &outcomes))
     }
 }
 
@@ -701,7 +701,7 @@ impl std::fmt::Display for MultiConfusionMatrix {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         if self.dim <= 25 {
             let outcomes = (0..self.dim).map(|i| format!("Class-{}", i + 1)).collect();
-            write!(f, "{}", display::stringify(&self.counts, &outcomes))
+            write!(f, "{}", display::stringify_confusion_matrix(&self.counts, &outcomes))
         } else {
             write!(f, "[Confusion matrix is too large to display]")
         }

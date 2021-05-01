@@ -7,7 +7,7 @@
 /// * `counts` the confusion matrix counts
 /// * `classes` the class outcome names
 ///
-pub fn stringify(counts: &Vec<Vec<usize>>, classes: &Vec<String>) -> String {
+pub fn stringify_confusion_matrix(counts: &Vec<Vec<usize>>, classes: &Vec<String>) -> String {
     // Compute max length of outcome names (in chars)
     let max_class_length = classes.iter().fold(0, |max, outcome| {
         match outcome.chars().count() {
