@@ -10,7 +10,7 @@ use crate::numeric::Float;
 /// * `scores` - vector of scores
 /// * `labels` - vector of labels
 ///
-pub fn validate_input<T, U>(scores: &Vec<T>, labels: &Vec<U>) -> Result<(), EvalError> {
+pub fn validate_input_dims<T, U>(scores: &Vec<T>, labels: &Vec<U>) -> Result<(), EvalError> {
     if scores.is_empty() {
         Err(EvalError::invalid_input("Scores are empty"))
     } else if labels.is_empty() {

@@ -27,7 +27,7 @@ use crate::error::EvalError;
 /// ```
 ///
 pub fn mse<T: Float>(scores: &Vec<T>, labels: &Vec<T>) -> Result<T, EvalError> {
-    util::validate_input(scores, labels).and_then(|_| {
+    util::validate_input_dims(scores, labels).and_then(|_| {
         Ok(scores.iter().zip(labels.iter()).fold(T::zero(), |sum, (&a, &b)| {
             let diff = a - b;
             sum + (diff * diff)
@@ -80,7 +80,7 @@ pub fn rmse<T: Float>(scores: &Vec<T>, labels: &Vec<T>) -> Result<T, EvalError> 
 /// ```
 ///
 pub fn mae<T: Float>(scores: &Vec<T>, labels: &Vec<T>) -> Result<T, EvalError> {
-    util::validate_input(scores, labels).and_then(|_| {
+    util::validate_input_dims(scores, labels).and_then(|_| {
         Ok(scores.iter().zip(labels.iter()).fold(T::zero(), |sum, (&a, &b)| {
             sum + (a - b).abs()
         }) / T::from_usize(scores.len()))
@@ -108,7 +108,7 @@ pub fn mae<T: Float>(scores: &Vec<T>, labels: &Vec<T>) -> Result<T, EvalError> {
 /// ```
 ///
 pub fn rsq<T: Float>(scores: &Vec<T>, labels: &Vec<T>) -> Result<T, EvalError> {
-    util::validate_input(scores, labels).and_then(|_| {
+    util::validate_input_dims(scores, labels).and_then(|_| {
         let length = scores.len();
         let label_sum = labels.iter().fold(T::zero(), |s, &v| {s + v});
         let label_mean =  label_sum / T::from_usize(length);
@@ -145,7 +145,7 @@ pub fn rsq<T: Float>(scores: &Vec<T>, labels: &Vec<T>) -> Result<T, EvalError> {
 ///
 pub fn corr<T: Float>(scores: &Vec<T>, labels: &Vec<T>) -> Result<T, EvalError> {
 
-    util::validate_input(scores, labels).and_then(|_| {
+    util::validate_input_dims(scores, labels).and_then(|_| {
         let length = scores.len();
 
         let x_mean = scores.iter().fold(T::zero(), |sum, &v| {sum + v}) / T::from_usize(length);
