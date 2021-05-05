@@ -33,8 +33,8 @@ impl EvalError {
     ///
     /// * `msg` - detailed error message
     ///
-    pub fn undefined_metric(msg: &str) -> EvalError {
-        EvalError::UndefinedMetric(String::from(msg))
+    pub fn undefined_metric(name: &str) -> EvalError {
+        EvalError::UndefinedMetric(String::from(name))
     }
 
     ///
@@ -56,7 +56,7 @@ impl std::fmt::Display for EvalError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             EvalError::InvalidInput(msg) => write!(f, "Invalid input: {}", msg),
-            EvalError::UndefinedMetric(msg) => write!(f, "Undefined metric: {}", msg)
+            EvalError::UndefinedMetric(name) => write!(f, "Undefined metric: {}", name)
         }
     }
 }

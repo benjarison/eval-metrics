@@ -115,7 +115,7 @@ impl BinaryConfusionMatrix {
         let num = self.tpc + self.tnc;
         match self.sum {
             // This should never happen as long as we prevent empty confusion matrices
-            0 => Err(EvalError::undefined_metric("Unable to compute accuracy")),
+            0 => Err(EvalError::undefined_metric("Accuracy")),
             sum => Ok(num as f64 / sum as f64)
         }
     }
@@ -125,7 +125,7 @@ impl BinaryConfusionMatrix {
     ///
     pub fn precision(&self) -> Result<f64, EvalError> {
         match self.tpc + self.fpc {
-            0 => Err(EvalError::undefined_metric("Unable to compute precision")),
+            0 => Err(EvalError::undefined_metric("Precision")),
             den => Ok((self.tpc as f64) / den as f64)
         }
     }
@@ -135,7 +135,7 @@ impl BinaryConfusionMatrix {
     ///
     pub fn recall(&self) -> Result<f64, EvalError> {
         match self.tpc + self.fnc {
-            0 => Err(EvalError::undefined_metric("Unable to compute recall")),
+            0 => Err(EvalError::undefined_metric("Recall")),
             den => Ok((self.tpc as f64) / den as f64)
         }
     }
@@ -159,7 +159,7 @@ impl BinaryConfusionMatrix {
         let s = (self.tpc + self.fnc) as f64 / n;
         let p = (self.tpc + self.fpc) as f64 / n;
         match (p * s * (1.0 - s) * (1.0 - p)).sqrt() {
-            den if den == 0.0 => Err(EvalError::undefined_metric("Unable to compute MCC")),
+            den if den == 0.0 => Err(EvalError::undefined_metric("MCC")),
             den => Ok(((self.tpc as f64 / n) - s * p) / den)
         }
     }
@@ -534,7 +534,7 @@ impl MultiConfusionMatrix {
     ///
     pub fn accuracy(&self) -> Result<f64, EvalError> {
         match self.sum {
-            0 => Err(EvalError::undefined_metric("Unable to compute accuracy")),
+            0 => Err(EvalError::undefined_metric("Accuracy")),
             sum => {
                 let mut correct = 0;
                 for i in 0..self.dim {
@@ -606,7 +606,7 @@ impl MultiConfusionMatrix {
         let den = (s * s - pp).sqrt() * (s * s - tt).sqrt();
 
         if den == 0.0 {
-            Err(EvalError::undefined_metric("Unable to compute Rk"))
+            Err(EvalError::undefined_metric("Rk"))
         } else {
             Ok(num / den)
         }
@@ -635,12 +635,10 @@ impl MultiConfusionMatrix {
         pcp.iter().zip(pcr.iter()).map(|pair| {
             match pair {
                 (Ok(p), Ok(r)) if *p == 0.0 && *r == 0.0 => {
-                    Err(EvalError::undefined_metric("Unable to compute F1 (precision, recall = 0)"))
+                    Err(EvalError::undefined_metric("Per-Class F1"))
                 },
                 (Ok(p), Ok(r)) => Ok(2.0 * (p * r) / (p + r)),
-                (Err(e), _) | (_, Err(e)) => {
-                    Err(EvalError::UndefinedMetric(format!("Unable to compute F1 ({})", e)))
-                }
+                (Err(e), _) | (_, Err(e)) => Err(e.clone())
             }
         }).collect()
     }
@@ -664,7 +662,7 @@ impl MultiConfusionMatrix {
                 }
             }) - a;
             match a + b {
-                0 => Err(EvalError::UndefinedMetric(format!("Unable to compute {}", metric.name()))),
+                0 => Err(EvalError::UndefinedMetric(format!("Per-Class {}", metric.name()))),
                 den => Ok(a as f64 / den as f64)
             }
         }).collect()
@@ -800,8 +798,8 @@ enum Metric {
 impl Metric {
     fn name(&self) -> &'static str {
         match self {
-            Metric::Precision => "precision",
-            Metric::Recall => "recall"
+            Metric::Precision => "Precision",
+            Metric::Recall => "Recall"
         }
     }
 }
