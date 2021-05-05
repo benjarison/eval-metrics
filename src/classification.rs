@@ -58,7 +58,7 @@ impl BinaryConfusionMatrix {
                              labels: &Vec<bool>,
                              threshold: T) -> Result<BinaryConfusionMatrix, EvalError> {
 
-        util::validate_input_dims(scores, labels).and_then(|_| {
+        util::validate_input_dims(scores, labels).and_then(|()| {
             let mut counts = [0, 0, 0, 0];
             for (&score, &label) in scores.iter().zip(labels) {
                 if !score.is_finite() {
@@ -227,7 +227,7 @@ impl <T: Float> RocCurve<T> {
     /// ```
     ///
     pub fn compute(scores: &Vec<T>, labels: &Vec<bool>) -> Result<RocCurve<T>, EvalError> {
-        util::validate_input_dims(scores, labels).and_then(|_| {
+        util::validate_input_dims(scores, labels).and_then(|()| {
             // roc not defined for a single data point
             let n = match scores.len() {
                 1 => return Err(EvalError::invalid_input(
@@ -355,7 +355,7 @@ impl <T: Float> PrCurve<T> {
     /// ```
     ///
     pub fn compute(scores: &Vec<T>, labels: &Vec<bool>) -> Result<PrCurve<T>, EvalError> {
-        util::validate_input_dims(scores, labels).and_then(|_| {
+        util::validate_input_dims(scores, labels).and_then(|()| {
             let n = match scores.len() {
                 1 => return Err(EvalError::invalid_input(
                     "Unable to compute pr curve on single data point"
@@ -462,7 +462,7 @@ impl MultiConfusionMatrix {
     pub fn compute<T: Float>(scores: &Vec<Vec<T>>,
                              labels: &Vec<usize>) -> Result<MultiConfusionMatrix, EvalError> {
 
-        util::validate_input_dims(scores, labels).and_then(|_| {
+        util::validate_input_dims(scores, labels).and_then(|()| {
             let dim = scores[0].len();
             let mut counts = vec![vec![0; dim]; dim];
             let mut sum = 0;
@@ -750,7 +750,7 @@ impl std::fmt::Display for MultiConfusionMatrix {
 
 pub fn m_auc<T: Float>(scores: &Vec<Vec<T>>, labels: &Vec<usize>) -> Result<T, EvalError> {
 
-    util::validate_input_dims(scores, labels).and_then(|_| {
+    util::validate_input_dims(scores, labels).and_then(|()| {
         let dim = scores[0].len();
         let mut m_sum = T::zero();
 
