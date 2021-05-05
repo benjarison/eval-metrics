@@ -114,7 +114,7 @@ impl BinaryConfusionMatrix {
     pub fn accuracy(&self) -> Result<f64, EvalError> {
         let num = self.tpc + self.tnc;
         match self.sum {
-            // This should never happen as long a we prevent empty confusion matrices
+            // This should never happen as long as we prevent empty confusion matrices
             0 => Err(EvalError::undefined_metric("Unable to compute accuracy")),
             sum => Ok(num as f64 / sum as f64)
         }

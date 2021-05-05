@@ -2,7 +2,7 @@
 name = "eval-metrics"
 version = "0.1.0"
 authors = ["Benjamin Harrison"]
-description = "Evaluation metric for machine learning"
+description = "Evaluation metrics for machine learning"
 keywords = ["evaluation-metrics", "machine-learning"]
 homepage = "https://github.com/benjarison/eval-metrics"
 repository = "https://github.com/benjarison/eval-metrics"
