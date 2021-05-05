@@ -179,9 +179,9 @@ impl std::fmt::Display for BinaryConfusionMatrix {
 #[derive(Copy, Clone, Debug, PartialEq)]
 pub struct RocPoint<T: Float> {
     /// True positive rate
-    pub tpr: T,
+    pub tp_rate: T,
     /// False positive rate
-    pub fpr: T,
+    pub fp_rate: T,
     /// Score threshold
     pub threshold: T
 }
@@ -252,16 +252,16 @@ impl <T: Float> RocCurve<T> {
                     }
                     let threshold = pairs[i-1].0;
                     match points.last_mut() {
-                        Some(mut point) if (point.fpr - fpr).abs() < T::from_f64(1e-10) => {
-                            if point.tpr > last_tpr {
-                                point.tpr = tpr;
+                        Some(mut point) if (point.fp_rate - fpr).abs() < T::from_f64(1e-10) => {
+                            if point.tp_rate > last_tpr {
+                                point.tp_rate = tpr;
                                 point.threshold = threshold;
                             } else {
-                                points.push(RocPoint {tpr, fpr, threshold});
+                                points.push(RocPoint {tp_rate: tpr, fp_rate: fpr, threshold});
                             }
                         },
                         _ => {
-                            points.push(RocPoint {tpr, fpr, threshold});
+                            points.push(RocPoint {tp_rate: tpr, fp_rate: fpr, threshold});
                             last_tpr = tpr;
                         }
                     }
@@ -274,9 +274,9 @@ impl <T: Float> RocCurve<T> {
             }
 
             if let Some(point) = points.last() {
-                if point.tpr != T::one() || point.fpr != T::one() {
+                if point.tp_rate != T::one() || point.fp_rate != T::one() {
                     let t = pairs.last().unwrap().0;
-                    points.push(RocPoint {tpr: T::one(), fpr: T::one(), threshold: t});
+                    points.push(RocPoint { tp_rate: T::one(), fp_rate: T::one(), threshold: t});
                 }
             }
 
@@ -291,11 +291,11 @@ impl <T: Float> RocCurve<T> {
     /// Computes the AUC from the roc curve
     ///
     pub fn auc(&self) -> Result<T, EvalError> {
-        let mut sum = self.points[0].tpr * self.points[0].fpr / T::from_f64(2.0);
+        let mut sum = self.points[0].tp_rate * self.points[0].fp_rate / T::from_f64(2.0);
         for i in 1..self.dim {
-            let fpr_diff = self.points[i].fpr - self.points[i-1].fpr;
-            let a = self.points[i-1].tpr * fpr_diff;
-            let b = (self.points[i].tpr - self.points[i-1].tpr) * fpr_diff / T::from_f64(2.0);
+            let fpr_diff = self.points[i].fp_rate - self.points[i-1].fp_rate;
+            let a = self.points[i-1].tp_rate * fpr_diff;
+            let b = (self.points[i].tp_rate - self.points[i-1].tp_rate) * fpr_diff / T::from_f64(2.0);
             sum += a + b;
         }
         return Ok(sum)
@@ -998,29 +998,29 @@ mod tests {
         let roc = RocCurve::compute(&scores, &labels).unwrap();
 
         assert_eq!(roc.dim, 8);
-        assert_approx_eq!(roc.points[0].tpr, 1.0 / 3.0);
-        assert_approx_eq!(roc.points[0].fpr, 0.0);
+        assert_approx_eq!(roc.points[0].tp_rate, 1.0 / 3.0);
+        assert_approx_eq!(roc.points[0].fp_rate, 0.0);
         assert_approx_eq!(roc.points[0].threshold, 0.9);
-        assert_approx_eq!(roc.points[1].tpr, 1.0 / 3.0);
-        assert_approx_eq!(roc.points[1].fpr, 0.2);
+        assert_approx_eq!(roc.points[1].tp_rate, 1.0 / 3.0);
+        assert_approx_eq!(roc.points[1].fp_rate, 0.2);
         assert_approx_eq!(roc.points[1].threshold, 0.8);
-        assert_approx_eq!(roc.points[2].tpr, 2.0 / 3.0);
-        assert_approx_eq!(roc.points[2].fpr, 0.2);
+        assert_approx_eq!(roc.points[2].tp_rate, 2.0 / 3.0);
+        assert_approx_eq!(roc.points[2].fp_rate, 0.2);
         assert_approx_eq!(roc.points[2].threshold, 0.7);
-        assert_approx_eq!(roc.points[3].tpr, 2.0 / 3.0);
-        assert_approx_eq!(roc.points[3].fpr, 0.4);
+        assert_approx_eq!(roc.points[3].tp_rate, 2.0 / 3.0);
+        assert_approx_eq!(roc.points[3].fp_rate, 0.4);
         assert_approx_eq!(roc.points[3].threshold, 0.5);
-        assert_approx_eq!(roc.points[4].tpr, 2.0 / 3.0);
-        assert_approx_eq!(roc.points[4].fpr, 0.6);
+        assert_approx_eq!(roc.points[4].tp_rate, 2.0 / 3.0);
+        assert_approx_eq!(roc.points[4].fp_rate, 0.6);
         assert_approx_eq!(roc.points[4].threshold, 0.4);
-        assert_approx_eq!(roc.points[5].tpr, 2.0 / 3.0);
-        assert_approx_eq!(roc.points[5].fpr, 0.8);
+        assert_approx_eq!(roc.points[5].tp_rate, 2.0 / 3.0);
+        assert_approx_eq!(roc.points[5].fp_rate, 0.8);
         assert_approx_eq!(roc.points[5].threshold, 0.3);
-        assert_approx_eq!(roc.points[6].tpr, 2.0 / 3.0);
-        assert_approx_eq!(roc.points[6].fpr, 1.0);
+        assert_approx_eq!(roc.points[6].tp_rate, 2.0 / 3.0);
+        assert_approx_eq!(roc.points[6].fp_rate, 1.0);
         assert_approx_eq!(roc.points[6].threshold, 0.2);
-        assert_approx_eq!(roc.points[7].tpr, 1.0);
-        assert_approx_eq!(roc.points[7].fpr, 1.0);
+        assert_approx_eq!(roc.points[7].tp_rate, 1.0);
+        assert_approx_eq!(roc.points[7].fp_rate, 1.0);
         assert_approx_eq!(roc.points[7].threshold, 0.1);
     }
 
