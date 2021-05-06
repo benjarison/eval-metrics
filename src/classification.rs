@@ -14,13 +14,13 @@ use crate::display;
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
 pub struct BinaryConfusionMatrix {
     /// true positive count
-    pub tpc: usize,
+    pub tp_count: usize,
     /// false positive count
-    pub fpc: usize,
+    pub fp_count: usize,
     /// true negative count
-    pub tnc: usize,
+    pub tn_count: usize,
     /// false negative count
-    pub fnc: usize,
+    pub fn_count: usize,
     /// count sum
     sum: usize
 }
@@ -75,10 +75,10 @@ impl BinaryConfusionMatrix {
             };
             let sum = counts.iter().sum();
             Ok(BinaryConfusionMatrix {
-                tpc: counts[3],
-                fpc: counts[2],
-                tnc: counts[0],
-                fnc: counts[1],
+                tp_count: counts[3],
+                fp_count: counts[2],
+                tn_count: counts[0],
+                fn_count: counts[1],
                 sum
             })
         })
@@ -104,7 +104,12 @@ impl BinaryConfusionMatrix {
                        fnc: usize) -> Result<BinaryConfusionMatrix, EvalError> {
         match tpc + fpc + tnc + fnc {
             0 => Err(EvalError::invalid_input("Confusion matrix has all zero counts")),
-            sum => Ok(BinaryConfusionMatrix {tpc, fpc, tnc, fnc, sum})
+            sum => Ok(BinaryConfusionMatrix {
+                tp_count: tpc,
+                fp_count: fpc,
+                tn_count: tnc,
+                fn_count: fnc, sum
+            })
         }
     }
 
@@ -112,7 +117,7 @@ impl BinaryConfusionMatrix {
     /// Computes the accuracy metric
     ///
     pub fn accuracy(&self) -> Result<f64, EvalError> {
-        let num = self.tpc + self.tnc;
+        let num = self.tp_count + self.tn_count;
         match self.sum {
             // This should never happen as long as we prevent empty confusion matrices
             0 => Err(EvalError::undefined_metric("Accuracy")),
@@ -124,9 +129,9 @@ impl BinaryConfusionMatrix {
     /// Computes the precision metric
     ///
     pub fn precision(&self) -> Result<f64, EvalError> {
-        match self.tpc + self.fpc {
+        match self.tp_count + self.fp_count {
             0 => Err(EvalError::undefined_metric("Precision")),
-            den => Ok((self.tpc as f64) / den as f64)
+            den => Ok((self.tp_count as f64) / den as f64)
         }
     }
 
@@ -134,9 +139,9 @@ impl BinaryConfusionMatrix {
     /// Computes the recall metric
     ///
     pub fn recall(&self) -> Result<f64, EvalError> {
-        match self.tpc + self.fnc {
+        match self.tp_count + self.fn_count {
             0 => Err(EvalError::undefined_metric("Recall")),
-            den => Ok((self.tpc as f64) / den as f64)
+            den => Ok((self.tp_count as f64) / den as f64)
         }
     }
 
@@ -156,18 +161,21 @@ impl BinaryConfusionMatrix {
     ///
     pub fn mcc(&self) -> Result<f64, EvalError> {
         let n = self.sum as f64;
-        let s = (self.tpc + self.fnc) as f64 / n;
-        let p = (self.tpc + self.fpc) as f64 / n;
+        let s = (self.tp_count + self.fn_count) as f64 / n;
+        let p = (self.tp_count + self.fp_count) as f64 / n;
         match (p * s * (1.0 - s) * (1.0 - p)).sqrt() {
             den if den == 0.0 => Err(EvalError::undefined_metric("MCC")),
-            den => Ok(((self.tpc as f64 / n) - s * p) / den)
+            den => Ok(((self.tp_count as f64 / n) - s * p) / den)
         }
     }
 }
 
 impl std::fmt::Display for BinaryConfusionMatrix {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let counts = vec![vec![self.tpc, self.fpc], vec![self.fnc, self.tnc]];
+        let counts = vec![
+            vec![self.tp_count, self.fp_count],
+            vec![self.fn_count, self.tn_count]
+        ];
         let outcomes = vec![String::from("Positive"), String::from("Negative")];
         write!(f, "{}", display::stringify_confusion_matrix(&counts, &outcomes))
     }
@@ -865,10 +873,10 @@ mod tests {
     fn test_binary_confusion_matrix() {
         let (scores, labels) = binary_data();
         let matrix = BinaryConfusionMatrix::compute(&scores, &labels, 0.5).unwrap();
-        assert_eq!(matrix.tpc, 2);
-        assert_eq!(matrix.fpc, 2);
-        assert_eq!(matrix.tnc, 3);
-        assert_eq!(matrix.fnc, 1);
+        assert_eq!(matrix.tp_count, 2);
+        assert_eq!(matrix.fp_count, 2);
+        assert_eq!(matrix.tn_count, 3);
+        assert_eq!(matrix.fn_count, 1);
     }
 
     #[test]
@@ -889,10 +897,10 @@ mod tests {
     #[test]
     fn test_binary_confusion_matrix_with_counts() {
         let matrix = BinaryConfusionMatrix::with_counts(2, 4, 5, 3).unwrap();
-        assert_eq!(matrix.tpc, 2);
-        assert_eq!(matrix.fpc, 4);
-        assert_eq!(matrix.tnc, 5);
-        assert_eq!(matrix.fnc, 3);
+        assert_eq!(matrix.tp_count, 2);
+        assert_eq!(matrix.fp_count, 4);
+        assert_eq!(matrix.tn_count, 5);
+        assert_eq!(matrix.fn_count, 3);
         assert_eq!(matrix.sum, 14);
         assert!(BinaryConfusionMatrix::with_counts(0, 0, 0, 0).is_err())
     }
