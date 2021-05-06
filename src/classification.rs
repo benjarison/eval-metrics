@@ -246,38 +246,38 @@ impl <T: Float> RocCurve<T> {
             let (mut pairs, np) = create_pairs(scores, labels)?;
             let nn = n - np;
             sort_pairs_descending(&mut pairs);
-            let mut tp = if pairs[0].1 {1} else {0};
-            let mut fp = 1 - tp;
+            let mut tpc = if pairs[0].1 {1} else {0};
+            let mut fpc = 1 - tpc;
             let mut points = Vec::<RocPoint<T>>::new();
             let mut last_tpr = T::zero();
 
             for i in 1..n {
                 if pairs[i].0 != pairs[i-1].0 {
-                    let tpr = T::from_usize(tp) / T::from_usize(np);
-                    let fpr = T::from_usize(fp) / T::from_usize(nn);
-                    if !tpr.is_finite() || !fpr.is_finite() {
+                    let tp_rate = T::from_usize(tpc) / T::from_usize(np);
+                    let fp_rate = T::from_usize(fpc) / T::from_usize(nn);
+                    if !tp_rate.is_finite() || !fp_rate.is_finite() {
                         return Err(EvalError::infinite_value())
                     }
                     let threshold = pairs[i-1].0;
                     match points.last_mut() {
-                        Some(mut point) if (point.fp_rate - fpr).abs() < T::from_f64(1e-10) => {
+                        Some(mut point) if (point.fp_rate - fp_rate).abs() < T::from_f64(1e-10) => {
                             if point.tp_rate > last_tpr {
-                                point.tp_rate = tpr;
+                                point.tp_rate = tp_rate;
                                 point.threshold = threshold;
                             } else {
-                                points.push(RocPoint {tp_rate: tpr, fp_rate: fpr, threshold});
+                                points.push(RocPoint {tp_rate, fp_rate, threshold});
                             }
                         },
                         _ => {
-                            points.push(RocPoint {tp_rate: tpr, fp_rate: fpr, threshold});
-                            last_tpr = tpr;
+                            points.push(RocPoint {tp_rate, fp_rate, threshold});
+                            last_tpr = tp_rate;
                         }
                     }
                 }
                 if pairs[i].1 {
-                    tp += 1;
+                    tpc += 1;
                 } else {
-                    fp += 1;
+                    fpc += 1;
                 }
             }
 
@@ -299,14 +299,14 @@ impl <T: Float> RocCurve<T> {
     /// Computes the AUC from the roc curve
     ///
     pub fn auc(&self) -> Result<T, EvalError> {
-        let mut sum = self.points[0].tp_rate * self.points[0].fp_rate / T::from_f64(2.0);
+        let mut val = self.points[0].tp_rate * self.points[0].fp_rate / T::from_f64(2.0);
         for i in 1..self.dim {
             let fpr_diff = self.points[i].fp_rate - self.points[i-1].fp_rate;
             let a = self.points[i-1].tp_rate * fpr_diff;
             let b = (self.points[i].tp_rate - self.points[i-1].tp_rate) * fpr_diff / T::from_f64(2.0);
-            sum += a + b;
+            val += a + b;
         }
-        return Ok(sum)
+        return Ok(val)
     }
 }
 
@@ -385,16 +385,16 @@ impl <T: Float> PrCurve<T> {
                     fpc += 1;
                 }
                 if (i < n-1 && pairs[i].0 != pairs[i+1].0) || i == n-1 {
-                    let pre = T::from_usize(tpc) / T::from_usize(tpc + fpc);
-                    let rec = T::from_usize(tpc) / T::from_usize(tpc + fnc);
-                    if !pre.is_finite() || !rec.is_finite() {
+                    let precision = T::from_usize(tpc) / T::from_usize(tpc + fpc);
+                    let recall = T::from_usize(tpc) / T::from_usize(tpc + fnc);
+                    if !precision.is_finite() || !recall.is_finite() {
                         return Err(EvalError::infinite_value())
                     }
                     let threshold = pairs[i].0;
-                    if rec != last_rec {
-                        points.push(PrPoint {precision: pre, recall: rec, threshold});
+                    if recall != last_rec {
+                        points.push(PrPoint {precision, recall, threshold});
                     }
-                    last_rec = rec;
+                    last_rec = recall;
                 }
             }
 
@@ -407,12 +407,12 @@ impl <T: Float> PrCurve<T> {
     /// Computes the average precision metric from the PR curve
     ///
     pub fn ap(&self) -> Result<T, EvalError> {
-        let mut avg_pre = self.points[0].precision * self.points[0].recall;
+        let mut val = self.points[0].precision * self.points[0].recall;
         for i in 1..self.dim {
             let rec_diff = self.points[i].recall - self.points[i-1].recall;
-            avg_pre += rec_diff * self.points[i].precision;
+            val += rec_diff * self.points[i].precision;
         }
-        return Ok(avg_pre)
+        return Ok(val)
     }
 }
 
