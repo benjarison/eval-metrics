@@ -298,7 +298,7 @@ impl <T: Float> RocCurve<T> {
     ///
     /// Computes the AUC from the roc curve
     ///
-    pub fn auc(&self) -> Result<T, EvalError> {
+    pub fn auc(&self) -> T {
         let mut val = self.points[0].tp_rate * self.points[0].fp_rate / T::from_f64(2.0);
         for i in 1..self.dim {
             let fpr_diff = self.points[i].fp_rate - self.points[i-1].fp_rate;
@@ -306,7 +306,7 @@ impl <T: Float> RocCurve<T> {
             let b = (self.points[i].tp_rate - self.points[i-1].tp_rate) * fpr_diff / T::from_f64(2.0);
             val += a + b;
         }
-        return Ok(val)
+        return val
     }
 }
 
@@ -406,13 +406,13 @@ impl <T: Float> PrCurve<T> {
     ///
     /// Computes the average precision metric from the PR curve
     ///
-    pub fn ap(&self) -> Result<T, EvalError> {
+    pub fn ap(&self) -> T {
         let mut val = self.points[0].precision * self.points[0].recall;
         for i in 1..self.dim {
             let rec_diff = self.points[i].recall - self.points[i-1].recall;
             val += rec_diff * self.points[i].precision;
         }
-        return Ok(val)
+        return val;
     }
 }
 
@@ -775,9 +775,9 @@ pub fn m_auc<T: Float>(scores: &Vec<Vec<T>>, labels: &Vec<usize>) -> Result<T, E
         for j in 0..dim {
             for k in 0..j {
                 let (k_scores, k_labels) = subset(scores, labels, j, k);
-                let ajk = RocCurve::compute(&k_scores, &k_labels)?.auc()?;
+                let ajk = RocCurve::compute(&k_scores, &k_labels)?.auc();
                 let (j_scores, j_labels) = subset(scores, labels, k, j);
-                let akj = RocCurve::compute(&j_scores, &j_labels)?.auc()?;
+                let akj = RocCurve::compute(&j_scores, &j_labels)?.auc();
                 m_sum += (ajk + akj) / T::from_f64(2.0);
             }
         }
@@ -1064,11 +1064,11 @@ mod tests {
     #[test]
     fn test_auc() {
         let (scores, labels) = binary_data();
-        assert_approx_eq!(RocCurve::compute(&scores, &labels).unwrap().auc().unwrap(), 0.6);
+        assert_approx_eq!(RocCurve::compute(&scores, &labels).unwrap().auc(), 0.6);
 
         let scores2 = vec![0.2, 0.5, 0.5, 0.3];
         let labels2 = vec![false, true, false, true];
-        assert_approx_eq!(RocCurve::compute(&scores2, &labels2).unwrap().auc().unwrap(), 0.625);
+        assert_approx_eq!(RocCurve::compute(&scores2, &labels2).unwrap().auc(), 0.625);
     }
 
     #[test]
@@ -1077,9 +1077,9 @@ mod tests {
         let labels1 = vec![false, false, true, false, true, false, true];
         let labels2 = vec![false, false, true, true, false, false, true];
         let labels3 = vec![false, false, false, true, true, false, true];
-        assert_approx_eq!(RocCurve::compute(&scores, &labels1).unwrap().auc().unwrap(), 0.75);
-        assert_approx_eq!(RocCurve::compute(&scores, &labels2).unwrap().auc().unwrap(), 0.75);
-        assert_approx_eq!(RocCurve::compute(&scores, &labels3).unwrap().auc().unwrap(), 0.75);
+        assert_approx_eq!(RocCurve::compute(&scores, &labels1).unwrap().auc(), 0.75);
+        assert_approx_eq!(RocCurve::compute(&scores, &labels2).unwrap().auc(), 0.75);
+        assert_approx_eq!(RocCurve::compute(&scores, &labels3).unwrap().auc(), 0.75);
     }
     
     #[test]
@@ -1124,11 +1124,11 @@ mod tests {
     #[test]
     fn test_ap() {
         let (scores, labels) = binary_data();
-        assert_approx_eq!(PrCurve::compute(&scores, &labels).unwrap().ap().unwrap(), 0.6805555555555556);
+        assert_approx_eq!(PrCurve::compute(&scores, &labels).unwrap().ap(), 0.6805555555555556);
 
         let scores2 = vec![0.2, 0.5, 0.5, 0.3];
         let labels2 = vec![false, true, false, true];
-        assert_approx_eq!(PrCurve::compute(&scores2, &labels2).unwrap().ap().unwrap(), 0.58333333333333);
+        assert_approx_eq!(PrCurve::compute(&scores2, &labels2).unwrap().ap(), 0.58333333333333);
     }
 
     #[test]
@@ -1137,9 +1137,9 @@ mod tests {
         let labels1 = vec![false, false, true, false, true, false, true];
         let labels2 = vec![false, false, true, true, false, false, true];
         let labels3 = vec![false, false, false, true, true, false, true];
-        assert_approx_eq!(PrCurve::compute(&scores, &labels1).unwrap().ap().unwrap(), 0.7333333333333);
-        assert_approx_eq!(PrCurve::compute(&scores, &labels2).unwrap().ap().unwrap(), 0.7333333333333);
-        assert_approx_eq!(PrCurve::compute(&scores, &labels3).unwrap().ap().unwrap(), 0.7333333333333);
+        assert_approx_eq!(PrCurve::compute(&scores, &labels1).unwrap().ap(), 0.7333333333333);
+        assert_approx_eq!(PrCurve::compute(&scores, &labels2).unwrap().ap(), 0.7333333333333);
+        assert_approx_eq!(PrCurve::compute(&scores, &labels3).unwrap().ap(), 0.7333333333333);
     }
 
     #[test]
