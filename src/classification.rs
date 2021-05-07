@@ -624,14 +624,14 @@ impl MultiConfusionMatrix {
     /// Computes the per-class precision metrics, resulting in a vector of values for each class
     ///
     pub fn per_class_precision(&self) -> Vec<Result<f64, EvalError>> {
-        self.per_class_metric(Metric::Precision)
+        self.per_class_pr_metric(PrMetric::Precision)
     }
 
     ///
     /// Computes the per-class recall metrics, resulting in a vector of values for each class
     ///
     pub fn per_class_recall(&self) -> Vec<Result<f64, EvalError>> {
-        self.per_class_metric(Metric::Recall)
+        self.per_class_pr_metric(PrMetric::Recall)
     }
 
     ///
@@ -660,13 +660,13 @@ impl MultiConfusionMatrix {
         }
     }
 
-    fn per_class_metric(&self, metric: Metric) -> Vec<Result<f64, EvalError>> {
+    fn per_class_pr_metric(&self, metric: PrMetric) -> Vec<Result<f64, EvalError>> {
         (0..self.dim).map(|i| {
             let a = self.counts[i][i];
             let b = (0..self.dim).fold(0, |sum, j| {
                 sum + match metric {
-                    Metric::Precision => self.counts[i][j],
-                    Metric::Recall => self.counts[j][i]
+                    PrMetric::Precision => self.counts[i][j],
+                    PrMetric::Recall => self.counts[j][i]
                 }
             }) - a;
             match a + b {
@@ -798,16 +798,16 @@ pub enum Averaging {
     Weighted
 }
 
-enum Metric {
+enum PrMetric {
     Precision,
     Recall
 }
 
-impl Metric {
+impl PrMetric {
     fn name(&self) -> &'static str {
         match self {
-            Metric::Precision => "Precision",
-            Metric::Recall => "Recall"
+            PrMetric::Precision => "Precision",
+            PrMetric::Recall => "Recall"
         }
     }
 }
