@@ -31,14 +31,14 @@ impl EvalError {
     ///
     /// # Arguments
     ///
-    /// * `msg` - detailed error message
+    /// * `name` - metric name
     ///
     pub fn undefined_metric(name: &str) -> EvalError {
         EvalError::UndefinedMetric(String::from(name))
     }
 
     ///
-    /// Constructs a new undefined metric error specifically for encountered infinite/NaN values
+    /// Constructs a new undefined metric error for encountered infinite/NaN values
     ///
     pub fn infinite_value() -> EvalError {
         EvalError::undefined_metric("Infinite or NaN value")
