@@ -7,7 +7,7 @@
 ///
 #[derive(Clone, Debug)]
 pub enum EvalError {
-    /// An error that results for invalid user input, such as mismatched data lengths
+    /// An error that results from invalid user input, such as mismatched data lengths
     InvalidInput(String),
     /// An error that indicates that the metric is undefined for some numeric reason
     UndefinedMetric(String)
