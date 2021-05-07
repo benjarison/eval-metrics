@@ -4,7 +4,7 @@
 
 use std::cmp::Ordering;
 use crate::util;
-use crate::numeric::Float;
+use crate::numeric::Scalar;
 use crate::error::EvalError;
 use crate::display;
 
@@ -54,9 +54,9 @@ impl BinaryConfusionMatrix {
     /// # Ok(())}
     /// ```
     ///
-    pub fn compute<T: Float>(scores: &Vec<T>,
-                             labels: &Vec<bool>,
-                             threshold: T) -> Result<BinaryConfusionMatrix, EvalError> {
+    pub fn compute<T: Scalar>(scores: &Vec<T>,
+                              labels: &Vec<bool>,
+                              threshold: T) -> Result<BinaryConfusionMatrix, EvalError> {
 
         util::validate_input_dims(scores, labels).and_then(|()| {
             let mut counts = [0, 0, 0, 0];
@@ -185,7 +185,7 @@ impl std::fmt::Display for BinaryConfusionMatrix {
 /// Represents a single point along a roc curve
 ///
 #[derive(Copy, Clone, Debug, PartialEq)]
-pub struct RocPoint<T: Float> {
+pub struct RocPoint<T: Scalar> {
     /// True positive rate
     pub tp_rate: T,
     /// False positive rate
@@ -198,14 +198,14 @@ pub struct RocPoint<T: Float> {
 /// Represents a full roc curve
 ///
 #[derive(Clone, Debug)]
-pub struct RocCurve<T: Float> {
+pub struct RocCurve<T: Scalar> {
     /// Roc curve points
     pub points: Vec<RocPoint<T>>,
     /// Length
     dim: usize
 }
 
-impl <T: Float> RocCurve<T> {
+impl <T: Scalar> RocCurve<T> {
 
     ///
     /// Computes the roc curve from the provided data
@@ -314,7 +314,7 @@ impl <T: Float> RocCurve<T> {
 /// Represents a single point along a precision-recall curve
 ///
 #[derive(Copy, Clone, Debug, PartialEq)]
-pub struct PrPoint<T: Float> {
+pub struct PrPoint<T: Scalar> {
     /// Precision value
     pub precision: T,
     /// Recall value
@@ -327,14 +327,14 @@ pub struct PrPoint<T: Float> {
 /// Represents a full precision-recall curve
 ///
 #[derive(Clone, Debug)]
-pub struct PrCurve<T: Float> {
+pub struct PrCurve<T: Scalar> {
     /// PR curve points
     pub points: Vec<PrPoint<T>>,
     /// Length
     dim: usize
 }
 
-impl <T: Float> PrCurve<T> {
+impl <T: Scalar> PrCurve<T> {
 
     ///
     /// Computes the precision-recall curve from the provided data
@@ -467,8 +467,8 @@ impl MultiConfusionMatrix {
     /// # Ok(())}
     /// ```
     ///
-    pub fn compute<T: Float>(scores: &Vec<Vec<T>>,
-                             labels: &Vec<usize>) -> Result<MultiConfusionMatrix, EvalError> {
+    pub fn compute<T: Scalar>(scores: &Vec<Vec<T>>,
+                              labels: &Vec<usize>) -> Result<MultiConfusionMatrix, EvalError> {
 
         util::validate_input_dims(scores, labels).and_then(|()| {
             let dim = scores[0].len();
@@ -754,16 +754,16 @@ impl std::fmt::Display for MultiConfusionMatrix {
 /// # Ok(())}
 /// ```
 
-pub fn m_auc<T: Float>(scores: &Vec<Vec<T>>, labels: &Vec<usize>) -> Result<T, EvalError> {
+pub fn m_auc<T: Scalar>(scores: &Vec<Vec<T>>, labels: &Vec<usize>) -> Result<T, EvalError> {
 
     util::validate_input_dims(scores, labels).and_then(|()| {
         let dim = scores[0].len();
         let mut m_sum = T::zero();
 
-        fn subset<T: Float>(scr: &Vec<Vec<T>>,
-                            lab: &Vec<usize>,
-                            j: usize,
-                            k: usize) -> (Vec<T>, Vec<bool>) {
+        fn subset<T: Scalar>(scr: &Vec<Vec<T>>,
+                             lab: &Vec<usize>,
+                             j: usize,
+                             k: usize) -> (Vec<T>, Vec<bool>) {
 
             scr.iter().zip(lab.iter()).filter(|(_, &l)| {
                 l == j || l == k
@@ -812,8 +812,8 @@ impl PrMetric {
     }
 }
 
-fn create_pairs<T: Float>(scores: &Vec<T>,
-                          labels: &Vec<bool>) -> Result<(Vec<(T, bool)>, usize), EvalError> {
+fn create_pairs<T: Scalar>(scores: &Vec<T>,
+                           labels: &Vec<bool>) -> Result<(Vec<(T, bool)>, usize), EvalError> {
 
     let n = scores.len();
     let mut pairs = Vec::with_capacity(n);
@@ -831,7 +831,7 @@ fn create_pairs<T: Float>(scores: &Vec<T>,
     Ok((pairs, num_pos))
 }
 
-fn sort_pairs_descending<T: Float>(pairs: &mut Vec<(T, bool)>) {
+fn sort_pairs_descending<T: Scalar>(pairs: &mut Vec<(T, bool)>) {
     pairs.sort_unstable_by(|(s1, _), (s2, _)| {
         if s1 > s2 {
             Ordering::Less

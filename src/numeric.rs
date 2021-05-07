@@ -1,9 +1,9 @@
 use std::ops::{Add, Sub, Mul, Div, AddAssign};
 
 ///
-/// Represents a floating point number which can either be single (f32) or double (f64) precision
+/// Represents a scalar value which can either be single (f32) or double (f64) precision
 ///
-pub trait Float:
+pub trait Scalar:
     private::Sealed +
     Copy +
     Add<Self, Output=Self> +
@@ -57,7 +57,7 @@ pub trait Float:
 ///
 /// Implementation for f32 single-precision values
 ///
-impl Float for f32 {
+impl Scalar for f32 {
     fn abs(self) -> Self {self.abs()}
     fn sqrt(self) -> Self {self.sqrt()}
     fn is_finite(self) -> bool {self.is_finite()}
@@ -71,7 +71,7 @@ impl Float for f32 {
 ///
 /// Implementation for f64 double-precision values
 ///
-impl Float for f64 {
+impl Scalar for f64 {
     fn abs(self) -> Self {self.abs()}
     fn sqrt(self) -> Self {self.sqrt()}
     fn is_finite(self) -> bool {self.is_finite()}

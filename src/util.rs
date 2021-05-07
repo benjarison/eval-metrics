@@ -1,5 +1,5 @@
 use crate::error::EvalError;
-use crate::numeric::Float;
+use crate::numeric::Scalar;
 
 ///
 /// Validates a pair of scores and labels, returning an error if either scores or labels are
@@ -29,7 +29,7 @@ pub fn validate_input_dims<T, U>(scores: &Vec<T>, labels: &Vec<U>) -> Result<(),
 ///
 /// * `value` - float value to check
 ///
-pub fn check_finite<T: Float>(value: T) -> Result<T, EvalError> {
+pub fn check_finite<T: Scalar>(value: T) -> Result<T, EvalError> {
     if value.is_finite() {
         Ok(value)
     } else {

@@ -3,7 +3,7 @@
 //!
 
 use crate::util;
-use crate::numeric::Float;
+use crate::numeric::Scalar;
 use crate::error::EvalError;
 
 ///
@@ -26,7 +26,7 @@ use crate::error::EvalError;
 /// # Ok(())}
 /// ```
 ///
-pub fn mse<T: Float>(scores: &Vec<T>, labels: &Vec<T>) -> Result<T, EvalError> {
+pub fn mse<T: Scalar>(scores: &Vec<T>, labels: &Vec<T>) -> Result<T, EvalError> {
     util::validate_input_dims(scores, labels).and_then(|()| {
         Ok(scores.iter().zip(labels.iter()).fold(T::zero(), |sum, (&a, &b)| {
             let diff = a - b;
@@ -55,7 +55,7 @@ pub fn mse<T: Float>(scores: &Vec<T>, labels: &Vec<T>) -> Result<T, EvalError> {
 /// # Ok(())}
 /// ```
 ///
-pub fn rmse<T: Float>(scores: &Vec<T>, labels: &Vec<T>) -> Result<T, EvalError> {
+pub fn rmse<T: Scalar>(scores: &Vec<T>, labels: &Vec<T>) -> Result<T, EvalError> {
     mse(scores, labels).map(|m| m.sqrt())
 }
 
@@ -79,7 +79,7 @@ pub fn rmse<T: Float>(scores: &Vec<T>, labels: &Vec<T>) -> Result<T, EvalError> 
 /// # Ok(())}
 /// ```
 ///
-pub fn mae<T: Float>(scores: &Vec<T>, labels: &Vec<T>) -> Result<T, EvalError> {
+pub fn mae<T: Scalar>(scores: &Vec<T>, labels: &Vec<T>) -> Result<T, EvalError> {
     util::validate_input_dims(scores, labels).and_then(|()| {
         Ok(scores.iter().zip(labels.iter()).fold(T::zero(), |sum, (&a, &b)| {
             sum + (a - b).abs()
@@ -107,7 +107,7 @@ pub fn mae<T: Float>(scores: &Vec<T>, labels: &Vec<T>) -> Result<T, EvalError> {
 /// # Ok(())}
 /// ```
 ///
-pub fn rsq<T: Float>(scores: &Vec<T>, labels: &Vec<T>) -> Result<T, EvalError> {
+pub fn rsq<T: Scalar>(scores: &Vec<T>, labels: &Vec<T>) -> Result<T, EvalError> {
     util::validate_input_dims(scores, labels).and_then(|()| {
         let length = scores.len();
         let label_sum = labels.iter().fold(T::zero(), |s, &v| {s + v});
@@ -143,7 +143,7 @@ pub fn rsq<T: Float>(scores: &Vec<T>, labels: &Vec<T>) -> Result<T, EvalError> {
 /// # Ok(())}
 /// ```
 ///
-pub fn corr<T: Float>(scores: &Vec<T>, labels: &Vec<T>) -> Result<T, EvalError> {
+pub fn corr<T: Scalar>(scores: &Vec<T>, labels: &Vec<T>) -> Result<T, EvalError> {
 
     util::validate_input_dims(scores, labels).and_then(|()| {
         let length = scores.len();
