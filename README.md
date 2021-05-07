@@ -2,18 +2,6 @@
 
 Evaluation metrics for machine learning
 
-## Design
-
-The goal of this library is to serve as a lightweight and intuitive collection of functions for computing evaluation 
-metrics commonly used in machine learning. Metrics are broken out into two modules, one for classification and one for 
-regression. For classification, metrics like accuracy, precision, recall, and f1 can all be computed (cheaply) from an 
-instantiated `BinaryConfusionMatrix` or `MultiConfusionMatrix`. The distinction between binary and multi-class 
-classification is made explicit to underscore the fact that these metrics are naturally formulated for the binary case, 
-and that some require additional assumptions (namely averaging methods) in the multi-class case. `Result`s are used as 
-return types for all metrics, reflecting the fact that evaluation metrics can fail to be defined for a variety of 
-reasons. If a metric is not well defined, then an `Err` type will be returned. Note that this is inherently more 
-conservative than some other libraries which may impute default values in certain cases where a metric is undefined.
-
 ## Supported Metrics
 
 | Metric      | Task                       | Description                                                        |
@@ -46,26 +34,36 @@ conservative than some other libraries which may impute default values in certai
 The `BinaryConfusionMatrix` struct provides functionality for computing common binary classification metrics.
 
 ```rust
-// Note: these scores could also be f32 values
-let scores = vec![0.5, 0.2, 0.7, 0.4, 0.1, 0.3, 0.8, 0.9];
-let labels = vec![false, false, true, false, true, false, false, true];
-let threshold = 0.5;
+use eval_metrics::error::EvalError;
+use eval_metrics::classification::BinaryConfusionMatrix;
 
-// compute confusion matrix from scores and labels
-let matrix = BinaryConfusionMatrix::compute(&scores, &labels, threshold)?;
+fn main() -> Result<(), EvalError> {
 
-// metrics
-let acc = matrix.accuracy()?;
-let pre = matrix.precision()?;
-let rec = matrix.recall()?;
-let f1 = matrix.f1()?;
-let mcc = matrix.mcc()?;
-```
-The matrix can be printed to the console as well:
+    // note: these scores could also be f32 values
+    let scores = vec![0.5, 0.2, 0.7, 0.4, 0.1, 0.3, 0.8, 0.9];
+    let labels = vec![false, false, true, false, true, false, false, true];
+    let threshold = 0.5;
 
-```rust
-let matrix = BinaryConfusionMatrix::compute(&scores, &labels, threshold)?;
-println!("{}", matrix);
+    // compute confusion matrix from scores and labels
+    let matrix = BinaryConfusionMatrix::compute(&scores, &labels, threshold)?;
+
+    // counts
+    let tpc = matrix.tp_count;
+    let fpc = matrix.fp_count;
+    let tnc = matrix.tn_count;
+    let fnc = matrix.fn_count;
+
+    // metrics
+    let acc = matrix.accuracy()?;
+    let pre = matrix.precision()?;
+    let rec = matrix.recall()?;
+    let f1 = matrix.f1()?;
+    let mcc = matrix.mcc()?;
+
+    // print matrix to console
+    println!("{}", matrix);
+    Ok(())
+}
 ```
 ```
                             o=========================o
@@ -83,31 +81,37 @@ In addition to the metrics derived from the confusion matrix, ROC curves and PR 
 such as AUC and AP.
 
 ```rust
-// construct roc curve
-let roc = RocCurve::compute(&scores, &labels)?;
-// compute auc
-let auc = roc.auc()?;
-// inspect roc curve points
-let points: Vec<RocPoint> = roc.points;
-points.iter().for_each(|point| {
-    println!("{}, {}, {}", 
-             point.tpr, // true positive rate
-             point.fpr, // false positive rate
-             point.threshold); // corresponding score threshold
-});
+use eval_metrics::error::EvalError;
+use eval_metrics::classification::{RocCurve, RocPoint, PrCurve, PrPoint};
 
-// construct pr curve
-let pr = PrCurve::compute(&scores, &labels)?;
-// compute average precision
-let ap = pr.ap()?;
-// inspect pr curve points
-let points: Vec<PrPoint> = pr.points;
-points.iter().for_each(|point| {
-    println!("{}, {}, {}", 
-             point.precision, // precision value
-             point.recall, // recall value
-             point.threshold); // corresponding score threshold
-});
+fn main() -> Result<(), EvalError> {
+
+    let scores = vec![0.5, 0.2, 0.7, 0.4, 0.1, 0.3, 0.8, 0.9];
+    let labels = vec![false, false, true, false, true, false, false, true];
+
+    // construct roc curve
+    let roc = RocCurve::compute(&scores, &labels)?;
+    // compute auc
+    let auc = roc.auc();
+    // inspect roc curve points
+    roc.points.iter().for_each(|point| {
+        let tpr = point.tp_rate;
+        let fpr = point.fp_rate;
+        let thresh = point.threshold;
+    });
+
+    // construct pr curve
+    let pr = PrCurve::compute(&scores, &labels)?;
+    // compute average precision
+    let ap = pr.ap();
+    // inspect pr curve points
+    pr.points.iter().for_each(|point| {
+        let pre = point.precision;
+        let rec = point.recall;
+        let thresh = point.threshold;
+    });
+    Ok(())
+}
 ```
 
 ### Multi-Class Classification
@@ -116,35 +120,42 @@ The `MultiConfusionMatrix` struct provides functionality for computing common mu
 Additionally, averaging methods must be explicitly provided for several of these metrics.
 
 ```rust
-let scores = vec![
-    vec![0.3, 0.1, 0.6],
-    vec![0.5, 0.2, 0.3],
-    vec![0.2, 0.7, 0.1],
-    vec![0.3, 0.3, 0.4],
-    vec![0.5, 0.1, 0.4],
-    vec![0.8, 0.1, 0.1],
-    vec![0.3, 0.5, 0.2]
-];
-let labels = vec![2, 1, 1, 2, 0, 2, 0];
+use eval_metrics::error::EvalError;
+use eval_metrics::classification::{MultiConfusionMatrix, Averaging};
 
-// compute confusion matrix from scores and labels
-let matrix = MultiConfusionMatrix::compute(&scores, &labels)?;
+fn main() -> Result<(), EvalError> {
 
-// metrics
-let acc = matrix.accuracy()?;
-let mac_pre = matrix.precision(&Averaging::Macro)?;
-let wgt_pre = matrix.precision(&Averaging::Weighted)?;
-let mac_rec = matrix.recall(&Averaging::Macro)?;
-let wgt_rec = matrix.recall(&Averaging::Weighted)?;
-let mac_f1 = matrix.f1(&Averaging::Macro)?;
-let wgt_f1 = matrix.f1(&Averaging::Weighted)?;
-let rk = matrix.rk()?;
-```
-The matrix can be printed to the console as well:
+    let scores = vec![
+        vec![0.3, 0.1, 0.6],
+        vec![0.5, 0.2, 0.3],
+        vec![0.2, 0.7, 0.1],
+        vec![0.3, 0.3, 0.4],
+        vec![0.5, 0.1, 0.4],
+        vec![0.8, 0.1, 0.1],
+        vec![0.3, 0.5, 0.2]
+    ];
+    let labels = vec![2, 1, 1, 2, 0, 2, 0];
 
-```rust
-let matrix = MultiConfusionMatrix::compute(&scores, &labels)?;
-println!("{}", matrix);
+    // compute confusion matrix from scores and labels
+    let matrix = MultiConfusionMatrix::compute(&scores, &labels)?;
+
+    // get counts
+    let counts = &matrix.counts;
+
+    // metrics
+    let acc = matrix.accuracy()?;
+    let mac_pre = matrix.precision(&Averaging::Macro)?;
+    let wgt_pre = matrix.precision(&Averaging::Weighted)?;
+    let mac_rec = matrix.recall(&Averaging::Macro)?;
+    let wgt_rec = matrix.recall(&Averaging::Weighted)?;
+    let mac_f1 = matrix.f1(&Averaging::Macro)?;
+    let wgt_f1 = matrix.f1(&Averaging::Weighted)?;
+    let rk = matrix.rk()?;
+
+    // print matrix to console
+    println!("{}", matrix);
+    Ok(())
+}
 ```
 ```
                            o===================================o
@@ -152,11 +163,11 @@ println!("{}", matrix);
                            o===================================o
                            |  Class-1  |  Class-2  |  Class-3  |
 o==============o===========o===========|===========|===========o
-|              |  Class-1  |   1138    |   1126    |   1084    |
+|              |  Class-1  |     1     |     1     |     1     |
 |              |===========|-----------|-----------|-----------|
-|  Prediction  |  Class-2  |   1078    |   1147    |   1126    |
+|  Prediction  |  Class-2  |     1     |     1     |     0     |
 |              |===========|-----------|-----------|-----------|
-|              |  Class-3  |   1107    |   1092    |   1102    |
+|              |  Class-3  |     0     |     0     |     2     |
 o==============o===========o===================================o
 ```
 
@@ -172,20 +183,25 @@ let mauc = m_auc(&scores, &labels)?;
 All regression metrics operate on a pair of scores and labels.
 
 ```rust
+use eval_metrics::error::EvalError;
 use eval_metrics::regression::*;
 
-// Note: these could also be f32 values
-let scores = vec![0.4, 0.7, -1.2, 2.5, 0.3];
-let labels = vec![0.2, 1.1, -0.9, 1.3, -0.2];
+fn main() -> Result<(), EvalError> {
 
-// root mean squared error
-let rmse = rmse(&scores, &labels)?;
-// mean squared error
-let mse = mse(&scores, &labels)?;
-// mean absolute error
-let mae = mae(&scores, &labels)?;
-// coefficient of determination
-let rsq = rsq(&scores, &labels)?;
-// pearson correlation coefficient
-let corr = corr(&scores, &labels)?;
+    // note: these could also be f32 values
+    let scores = vec![0.4, 0.7, -1.2, 2.5, 0.3];
+    let labels = vec![0.2, 1.1, -0.9, 1.3, -0.2];
+
+    // root mean squared error
+    let rmse = rmse(&scores, &labels)?;
+    // mean squared error
+    let mse = mse(&scores, &labels)?;
+    // mean absolute error
+    let mae = mae(&scores, &labels)?;
+    // coefficient of determination
+    let rsq = rsq(&scores, &labels)?;
+    // pearson correlation coefficient
+    let corr = corr(&scores, &labels)?;
+    Ok(())
+}
 ```
