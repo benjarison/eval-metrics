@@ -89,32 +89,27 @@ impl BinaryConfusionMatrix {
     ///
     /// # Arguments
     ///
-    /// * `tpc` - true positive count
-    /// * `fpc` - false positive count
-    /// * `tnc` - true negative count
-    /// * `fnc` - false negative count
+    /// * `tp_count` - true positive count
+    /// * `fp_count` - false positive count
+    /// * `tn_count` - true negative count
+    /// * `fn_count` - false negative count
     ///
     /// # Errors
     ///
     /// An invalid input error will be returned if all provided counts are zero
     ///
-    pub fn with_counts(tpc: usize,
-                       fpc: usize,
-                       tnc: usize,
-                       fnc: usize) -> Result<BinaryConfusionMatrix, EvalError> {
-        match tpc + fpc + tnc + fnc {
+    pub fn with_counts(tp_count: usize,
+                       fp_count: usize,
+                       tn_count: usize,
+                       fn_count: usize) -> Result<BinaryConfusionMatrix, EvalError> {
+        match tp_count + fp_count + tn_count + fn_count {
             0 => Err(EvalError::invalid_input("Confusion matrix has all zero counts")),
-            sum => Ok(BinaryConfusionMatrix {
-                tp_count: tpc,
-                fp_count: fpc,
-                tn_count: tnc,
-                fn_count: fnc, sum
-            })
+            sum => Ok(BinaryConfusionMatrix {tp_count, fp_count, tn_count, fn_count, sum})
         }
     }
 
     ///
-    /// Computes the accuracy metric
+    /// Computes accuracy
     ///
     pub fn accuracy(&self) -> Result<f64, EvalError> {
         let num = self.tp_count + self.tn_count;
@@ -126,7 +121,7 @@ impl BinaryConfusionMatrix {
     }
 
     ///
-    /// Computes the precision metric
+    /// Computes precision
     ///
     pub fn precision(&self) -> Result<f64, EvalError> {
         match self.tp_count + self.fp_count {
@@ -136,7 +131,7 @@ impl BinaryConfusionMatrix {
     }
 
     ///
-    /// Computes the recall metric
+    /// Computes recall
     ///
     pub fn recall(&self) -> Result<f64, EvalError> {
         match self.tp_count + self.fn_count {
@@ -146,7 +141,7 @@ impl BinaryConfusionMatrix {
     }
 
     ///
-    /// Computes the F1 metric
+    /// Computes F1
     ///
     pub fn f1(&self) -> Result<f64, EvalError> {
         match (self.precision(), self.recall()) {
@@ -296,7 +291,7 @@ impl <T: Scalar> RocCurve<T> {
     }
 
     ///
-    /// Computes the AUC from the roc curve
+    /// Computes AUC from the roc curve
     ///
     pub fn auc(&self) -> T {
         let mut val = self.points[0].tp_rate * self.points[0].fp_rate / T::from_f64(2.0);
@@ -404,7 +399,7 @@ impl <T: Scalar> PrCurve<T> {
     }
 
     ///
-    /// Computes the average precision metric from the PR curve
+    /// Computes average precision from the PR curve
     ///
     pub fn ap(&self) -> T {
         let mut val = self.points[0].precision * self.points[0].recall;
@@ -418,8 +413,8 @@ impl <T: Scalar> PrCurve<T> {
 
 
 ///
-/// Confusion matrix for multi-class classification, in which predicted counts constitute the rows,
-/// and actual (label) counts constitute the columns
+/// Confusion matrix for multi-class classification, in which rows represent predicted counts and
+/// columns represent labeled counts
 ///
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct MultiConfusionMatrix {
@@ -538,10 +533,11 @@ impl MultiConfusionMatrix {
     }
 
     ///
-    /// Computes the accuracy metric
+    /// Computes accuracy
     ///
     pub fn accuracy(&self) -> Result<f64, EvalError> {
         match self.sum {
+            // This should never happen as long as we prevent empty confusion matrices
             0 => Err(EvalError::undefined_metric("Accuracy")),
             sum => {
                 let mut correct = 0;
@@ -554,7 +550,7 @@ impl MultiConfusionMatrix {
     }
 
     ///
-    /// Computes the precision metric, which necessarily requires a specified averaging method
+    /// Computes precision, which necessarily requires a specified averaging method
     ///
     /// # Arguments
     ///
@@ -565,7 +561,7 @@ impl MultiConfusionMatrix {
     }
 
     ///
-    /// Computes the recall metric, which necessarily requires a specified averaging method
+    /// Computes recall, which necessarily requires a specified averaging method
     ///
     /// # Arguments
     ///
@@ -576,7 +572,7 @@ impl MultiConfusionMatrix {
     }
 
     ///
-    /// Computes the F-1 metric, which necessarily requires a specified averaging method
+    /// Computes F1, which necessarily requires a specified averaging method
     ///
     /// # Arguments
     ///
@@ -587,9 +583,9 @@ impl MultiConfusionMatrix {
     }
 
     ///
-    /// Computes the Rk metric, also known as the multi-class Matthews correlation coefficient
-    /// following the approach in "Comparing two K-category assignments by a K-category
-    /// correlation coefficient" (2004)
+    /// Computes Rk, also known as the multi-class Matthews correlation coefficient following the
+    /// approach in "Comparing two K-category assignments by a K-category correlation coefficient"
+    /// (2004)
     ///
     pub fn rk(&self) -> Result<f64, EvalError> {
 
@@ -621,21 +617,21 @@ impl MultiConfusionMatrix {
     }
 
     ///
-    /// Computes the per-class precision metrics, resulting in a vector of values for each class
+    /// Computes per-class precision, resulting in a vector of values for each class
     ///
     pub fn per_class_precision(&self) -> Vec<Result<f64, EvalError>> {
         self.per_class_pr_metric(PrMetric::Precision)
     }
 
     ///
-    /// Computes the per-class recall metrics, resulting in a vector of values for each class
+    /// Computes per-class recall, resulting in a vector of values for each class
     ///
     pub fn per_class_recall(&self) -> Vec<Result<f64, EvalError>> {
         self.per_class_pr_metric(PrMetric::Recall)
     }
 
     ///
-    /// Computes the per-class f1 metrics, resulting in a vector of values for each class
+    /// Computes per-class F1, resulting in a vector of values for each class
     ///
     pub fn per_class_f1(&self) -> Vec<Result<f64, EvalError>> {
         let pcp = self.per_class_precision();
@@ -719,8 +715,8 @@ impl std::fmt::Display for MultiConfusionMatrix {
 }
 
 ///
-/// Computes the multi-class AUC metric as described by Hand and Till in "A Simple Generalisation
-/// of the Area Under the ROC Curve for Multiple Class Classification Problems" (2001)
+/// Computes multi-class AUC as described by Hand and Till in "A Simple Generalisation of the Area
+/// Under the ROC Curve for Multiple Class Classification Problems" (2001)
 ///
 /// # Arguments
 ///
