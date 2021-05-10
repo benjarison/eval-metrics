@@ -326,7 +326,8 @@ impl <T: Scalar> RocCurve<T> {
         for i in 1..self.dim {
             let fpr_diff = self.points[i].fp_rate - self.points[i-1].fp_rate;
             let a = self.points[i-1].tp_rate * fpr_diff;
-            let b = (self.points[i].tp_rate - self.points[i-1].tp_rate) * fpr_diff / T::from_f64(2.0);
+            let tpr_diff = self.points[i].tp_rate - self.points[i-1].tp_rate;
+            let b = tpr_diff * fpr_diff / T::from_f64(2.0);
             val += a + b;
         }
         return val
@@ -911,17 +912,29 @@ mod tests {
 
     #[test]
     fn test_binary_confusion_matrix_empty() {
-        assert!(BinaryConfusionMatrix::compute(&Vec::<f64>::new(), &Vec::<bool>::new(), 0.5).is_err());
+        assert!(BinaryConfusionMatrix::compute(
+            &Vec::<f64>::new(),
+            &Vec::<bool>::new(),
+            0.5
+        ).is_err());
     }
 
     #[test]
     fn test_binary_confusion_matrix_unequal_length() {
-        assert!(BinaryConfusionMatrix::compute(&vec![0.1, 0.2], &vec![true, false, true], 0.5).is_err());
+        assert!(BinaryConfusionMatrix::compute(
+            &vec![0.1, 0.2],
+            &vec![true, false, true],
+            0.5
+        ).is_err());
     }
 
     #[test]
     fn test_binary_confusion_matrix_nan() {
-        assert!(BinaryConfusionMatrix::compute(&vec![f64::NAN, 0.2, 0.4], &vec![true, false, true], 0.5).is_err());
+        assert!(BinaryConfusionMatrix::compute(
+            &vec![f64::NAN, 0.2, 0.4],
+            &vec![true, false, true],
+            0.5
+        ).is_err());
     }
 
     #[test]
@@ -958,12 +971,20 @@ mod tests {
 
     #[test]
     fn test_binary_precision_empty() {
-        assert!(BinaryConfusionMatrix::compute(&Vec::<f64>::new(), &Vec::<bool>::new(), 0.5).is_err());
+        assert!(BinaryConfusionMatrix::compute(
+            &Vec::<f64>::new(),
+            &Vec::<bool>::new(),
+            0.5
+        ).is_err());
     }
 
     #[test]
     fn test_binary_precision_unequal_length() {
-        assert!(BinaryConfusionMatrix::compute(&vec![0.1, 0.2], &vec![true, false, true], 0.5).is_err());
+        assert!(BinaryConfusionMatrix::compute(
+            &vec![0.1, 0.2],
+            &vec![true, false, true],
+            0.5
+        ).is_err());
     }
 
     #[test]
@@ -982,12 +1003,20 @@ mod tests {
 
     #[test]
     fn test_binary_recall_empty() {
-        assert!(BinaryConfusionMatrix::compute(&Vec::<f64>::new(), &Vec::<bool>::new(), 0.5).is_err());
+        assert!(BinaryConfusionMatrix::compute(
+            &Vec::<f64>::new(),
+            &Vec::<bool>::new(),
+            0.5
+        ).is_err());
     }
 
     #[test]
     fn test_binary_recall_unequal_length() {
-        assert!(BinaryConfusionMatrix::compute(&vec![0.1, 0.2], &vec![true, false, true], 0.5).is_err());
+        assert!(BinaryConfusionMatrix::compute(
+            &vec![0.1, 0.2],
+            &vec![true, false, true],
+            0.5
+        ).is_err());
     }
 
     #[test]
@@ -1013,12 +1042,20 @@ mod tests {
 
     #[test]
     fn test_binary_f1_empty() {
-        assert!(BinaryConfusionMatrix::compute(&Vec::<f64>::new(), &Vec::<bool>::new(), 0.5).is_err());
+        assert!(BinaryConfusionMatrix::compute(
+            &Vec::<f64>::new(),
+            &Vec::<bool>::new(),
+            0.5
+        ).is_err());
     }
 
     #[test]
     fn test_binary_f1_unequal_length() {
-        assert!(BinaryConfusionMatrix::compute(&vec![0.1, 0.2], &vec![true, false, true], 0.5).is_err());
+        assert!(BinaryConfusionMatrix::compute(
+            &vec![0.1, 0.2],
+            &vec![true, false, true],
+            0.5
+        ).is_err());
     }
 
     #[test]
@@ -1058,12 +1095,18 @@ mod tests {
 
     #[test]
     fn test_roc_unequal_length() {
-        assert!(RocCurve::compute(&vec![0.4, 0.5, 0.2], &vec![true, false, true, false]).is_err());
+        assert!(RocCurve::compute(
+            &vec![0.4, 0.5, 0.2],
+            &vec![true, false, true, false]
+        ).is_err());
     }
 
     #[test]
     fn test_roc_nan() {
-        assert!(RocCurve::compute(&vec![0.4, 0.5, 0.2, f64::NAN], &vec![true, false, true, false]).is_err());
+        assert!(RocCurve::compute(
+            &vec![0.4, 0.5, 0.2, f64::NAN],
+            &vec![true, false, true, false]
+        ).is_err());
     }
 
     #[test]
@@ -1133,7 +1176,10 @@ mod tests {
 
     #[test]
     fn test_pr_nan() {
-        assert!(PrCurve::compute(&vec![0.4, 0.5, 0.2, f64::NAN], &vec![true, false, true, false]).is_err());
+        assert!(PrCurve::compute(
+            &vec![0.4, 0.5, 0.2, f64::NAN],
+            &vec![true, false, true, false]
+        ).is_err());
     }
 
     #[test]
@@ -1185,13 +1231,15 @@ mod tests {
     #[test]
     fn test_multi_confusion_matrix_unequal_length() {
         assert!(MultiConfusionMatrix::compute(&vec![vec![0.2, 0.4, 0.4], vec![0.5, 0.1, 0.4]],
-                                      &vec![2, 1, 0]).is_err());
+                                              &vec![2, 1, 0]).is_err());
     }
 
     #[test]
     fn test_multi_confusion_matrix_nan() {
-        assert!(MultiConfusionMatrix::compute(&vec![vec![0.2, 0.4, 0.4], vec![0.5, 0.1, 0.4], vec![0.3, 0.7, f64::NAN]],
-                                              &vec![2, 1, 0]).is_err());
+        assert!(MultiConfusionMatrix::compute(
+            &vec![vec![0.2, 0.4, 0.4], vec![0.5, 0.1, 0.4], vec![0.3, 0.7, f64::NAN]],
+            &vec![2, 1, 0]
+        ).is_err());
     }
 
     #[test]
