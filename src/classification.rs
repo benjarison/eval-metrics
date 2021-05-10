@@ -245,6 +245,8 @@ impl <T: Scalar> RocCurve<T> {
             let mut fpc = 1 - tpc;
             let mut points = Vec::<RocPoint<T>>::new();
             let mut last_tpr = T::zero();
+            let mut last_fpr = T::zero();
+            let mut trend: Option<RocTrend> = None;
 
             for i in 1..n {
                 if pairs[i].0 != pairs[i-1].0 {
@@ -254,20 +256,38 @@ impl <T: Scalar> RocCurve<T> {
                         return Err(EvalError::infinite_value())
                     }
                     let threshold = pairs[i-1].0;
-                    match points.last_mut() {
-                        Some(mut point) if (point.fp_rate - fp_rate).abs() < T::from_f64(1e-10) => {
-                            if point.tp_rate > last_tpr {
-                                point.tp_rate = tp_rate;
-                                point.threshold = threshold;
-                            } else {
-                                points.push(RocPoint {tp_rate, fp_rate, threshold});
-                            }
-                        },
-                        _ => {
+                    match trend {
+                        Some(RocTrend::Horizontal) => if tp_rate > last_tpr {
                             points.push(RocPoint {tp_rate, fp_rate, threshold});
-                            last_tpr = tp_rate;
+                        } else if let Some(mut point) = points.last_mut() {
+                            point.fp_rate = fp_rate;
+                            point.threshold = threshold;
+                        },
+                        Some(RocTrend::Vertical) => if fp_rate > last_fpr {
+                            points.push(RocPoint {tp_rate, fp_rate, threshold})
+                        } else if let Some(mut point) = points.last_mut() {
+                            point.tp_rate = tp_rate;
+                            point.threshold = threshold;
+                        },
+                        Some(RocTrend::Diagonal) => if tp_rate == last_tpr || fp_rate == last_fpr {
+                            points.push(RocPoint {tp_rate, fp_rate, threshold});
+                        } else if let Some(mut point) = points.last_mut() {
+                            point.tp_rate = tp_rate;
+                            point.fp_rate = fp_rate;
+                            point.threshold = threshold;
                         }
+                        None => points.push(RocPoint {tp_rate, fp_rate, threshold})
                     }
+
+                    trend = if fp_rate > last_fpr && tp_rate == last_tpr {
+                        Some(RocTrend::Horizontal)
+                    } else if tp_rate > last_tpr && fp_rate == last_fpr {
+                        Some(RocTrend::Vertical)
+                    } else {
+                        Some(RocTrend::Diagonal)
+                    };
+                    last_tpr = tp_rate;
+                    last_fpr = fp_rate;
                 }
                 if pairs[i].1 {
                     tpc += 1;
@@ -276,10 +296,18 @@ impl <T: Scalar> RocCurve<T> {
                 }
             }
 
-            if let Some(point) = points.last() {
+            if let Some(mut point) = points.last_mut() {
                 if point.tp_rate != T::one() || point.fp_rate != T::one() {
-                    let t = pairs.last().unwrap().0;
-                    points.push(RocPoint { tp_rate: T::one(), fp_rate: T::one(), threshold: t});
+                    let threshold = pairs.last().unwrap().0;
+                    match trend {
+                        Some(RocTrend::Horizontal) if point.tp_rate == T::one() => {
+                            point.threshold = threshold;
+                            point.fp_rate = T::from_f64(1.0);
+                        },
+                        _ => points.push(RocPoint {
+                            tp_rate: T::one(), fp_rate: T::one(), threshold
+                        })
+                    }
                 }
             }
 
@@ -808,6 +836,12 @@ impl PrMetric {
     }
 }
 
+enum RocTrend {
+    Horizontal,
+    Vertical,
+    Diagonal
+}
+
 fn create_pairs<T: Scalar>(scores: &Vec<T>,
                            labels: &Vec<bool>) -> Result<(Vec<(T, bool)>, usize), EvalError> {
 
@@ -999,7 +1033,7 @@ mod tests {
         let (scores, labels) = binary_data();
         let roc = RocCurve::compute(&scores, &labels).unwrap();
 
-        assert_eq!(roc.dim, 8);
+        assert_eq!(roc.dim, 5);
         assert_approx_eq!(roc.points[0].tp_rate, 1.0 / 3.0);
         assert_approx_eq!(roc.points[0].fp_rate, 0.0);
         assert_approx_eq!(roc.points[0].threshold, 0.9);
@@ -1010,20 +1044,11 @@ mod tests {
         assert_approx_eq!(roc.points[2].fp_rate, 0.2);
         assert_approx_eq!(roc.points[2].threshold, 0.7);
         assert_approx_eq!(roc.points[3].tp_rate, 2.0 / 3.0);
-        assert_approx_eq!(roc.points[3].fp_rate, 0.4);
-        assert_approx_eq!(roc.points[3].threshold, 0.5);
-        assert_approx_eq!(roc.points[4].tp_rate, 2.0 / 3.0);
-        assert_approx_eq!(roc.points[4].fp_rate, 0.6);
-        assert_approx_eq!(roc.points[4].threshold, 0.4);
-        assert_approx_eq!(roc.points[5].tp_rate, 2.0 / 3.0);
-        assert_approx_eq!(roc.points[5].fp_rate, 0.8);
-        assert_approx_eq!(roc.points[5].threshold, 0.3);
-        assert_approx_eq!(roc.points[6].tp_rate, 2.0 / 3.0);
-        assert_approx_eq!(roc.points[6].fp_rate, 1.0);
-        assert_approx_eq!(roc.points[6].threshold, 0.2);
-        assert_approx_eq!(roc.points[7].tp_rate, 1.0);
-        assert_approx_eq!(roc.points[7].fp_rate, 1.0);
-        assert_approx_eq!(roc.points[7].threshold, 0.1);
+        assert_approx_eq!(roc.points[3].fp_rate, 1.0);
+        assert_approx_eq!(roc.points[3].threshold, 0.2);
+        assert_approx_eq!(roc.points[4].tp_rate, 1.0);
+        assert_approx_eq!(roc.points[4].fp_rate, 1.0);
+        assert_approx_eq!(roc.points[4].threshold, 0.1);
     }
 
     #[test]
@@ -1073,6 +1098,9 @@ mod tests {
         let labels1 = vec![false, false, true, false, true, false, true];
         let labels2 = vec![false, false, true, true, false, false, true];
         let labels3 = vec![false, false, false, true, true, false, true];
+        for point in RocCurve::compute(&scores, &labels1).unwrap().points {
+            println!("{} {} {}", point.tp_rate, point.fp_rate, point.threshold);
+        }
         assert_approx_eq!(RocCurve::compute(&scores, &labels1).unwrap().auc(), 0.75);
         assert_approx_eq!(RocCurve::compute(&scores, &labels2).unwrap().auc(), 0.75);
         assert_approx_eq!(RocCurve::compute(&scores, &labels3).unwrap().auc(), 0.75);
