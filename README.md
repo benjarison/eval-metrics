@@ -2,6 +2,15 @@
 
 Evaluation metrics for machine learning
 
+## Design
+
+The goal of this library is to provide an intuitive collection of functions for computing evaluation metrics commonly 
+encountered in machine learning. Metrics are separated into modules for either `classification` or `regression`, with 
+the classification module supporting both binary and multi-class tasks. This distinction between binary and multi-class 
+classification is made explicit to underscore the fact that there are subtle differences in certain metrics between the 
+two cases (i.e. multi-class metrics often require averaging methods). Metrics can often fail to be defined for a 
+variety of numerical reasons, and in these cases `Result` types are used to make this fact apparent. 
+
 ## Supported Metrics
 
 | Metric      | Task                       | Description                                                        |
@@ -38,7 +47,6 @@ use eval_metrics::error::EvalError;
 use eval_metrics::classification::BinaryConfusionMatrix;
 
 fn main() -> Result<(), EvalError> {
-
     // note: these scores could also be f32 values
     let scores = vec![0.5, 0.2, 0.7, 0.4, 0.1, 0.3, 0.8, 0.9];
     let labels = vec![false, false, true, false, true, false, false, true];
@@ -71,9 +79,9 @@ fn main() -> Result<(), EvalError> {
                             o=========================o
                             |  Positive  |  Negative  |
 o==============o============o============|============o
-|              |  Positive  |    2532    |    2492    |
+|              |  Positive  |     2      |     2      |
 |  Prediction  |============|------------|------------|
-|              |  Negative  |    2457    |    2519    |
+|              |  Negative  |     1      |     3      |
 o==============o============o=========================o
 ```
 
@@ -85,7 +93,7 @@ use eval_metrics::error::EvalError;
 use eval_metrics::classification::{RocCurve, RocPoint, PrCurve, PrPoint};
 
 fn main() -> Result<(), EvalError> {
-
+    // note: these scores could also be f32 values
     let scores = vec![0.5, 0.2, 0.7, 0.4, 0.1, 0.3, 0.8, 0.9];
     let labels = vec![false, false, true, false, true, false, false, true];
 
@@ -124,7 +132,7 @@ use eval_metrics::error::EvalError;
 use eval_metrics::classification::{MultiConfusionMatrix, Averaging};
 
 fn main() -> Result<(), EvalError> {
-
+    // note: these scores could also be f32 values
     let scores = vec![
         vec![0.3, 0.1, 0.6],
         vec![0.5, 0.2, 0.3],
