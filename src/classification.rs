@@ -613,8 +613,8 @@ impl MultiConfusionMatrix {
 
     ///
     /// Computes Rk, also known as the multi-class Matthews correlation coefficient following the
-    /// approach in "Comparing two K-category assignments by a K-category correlation coefficient"
-    /// (2004)
+    /// approach of Gorodkin in "Comparing two K-category assignments by a K-category correlation
+    /// coefficient" (2004)
     ///
     pub fn rk(&self) -> Result<f64, EvalError> {
 
@@ -819,7 +819,7 @@ pub enum Averaging {
     /// Macro average, in which the individual metrics for each class are weighted uniformly
     Macro,
     /// Weighted average, in which the individual metrics for each class are weighted by the number
-    /// of occurrences of that label
+    /// of occurrences of that class
     Weighted
 }
 
