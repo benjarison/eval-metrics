@@ -269,14 +269,7 @@ impl <T: Scalar> RocCurve<T> {
                             point.tp_rate = tp_rate;
                             point.threshold = threshold;
                         },
-                        Some(RocTrend::Diagonal) => if tp_rate == last_tpr || fp_rate == last_fpr {
-                            points.push(RocPoint {tp_rate, fp_rate, threshold});
-                        } else if let Some(mut point) = points.last_mut() {
-                            point.tp_rate = tp_rate;
-                            point.fp_rate = fp_rate;
-                            point.threshold = threshold;
-                        }
-                        None => points.push(RocPoint {tp_rate, fp_rate, threshold})
+                        _ => points.push(RocPoint {tp_rate, fp_rate, threshold}),
                     }
 
                     trend = if fp_rate > last_fpr && tp_rate == last_tpr {
@@ -1089,6 +1082,25 @@ mod tests {
     }
 
     #[test]
+    fn test_roc_tied_scores() {
+        let scores = vec![1.0, 0.1, 1.0, 0.9, 0.5, 0.1, 0.8, 0.9, 1.0, 0.4];
+        let labels = vec![true, false, false, false, false, false, true, true, false, false];
+        let roc = RocCurve::compute(&scores, &labels).unwrap();
+        assert_approx_eq!(roc.points[0].tp_rate, 1.0 / 3.0);
+        assert_approx_eq!(roc.points[0].fp_rate, 0.2857142857142857);
+        assert_approx_eq!(roc.points[0].threshold, 1.0);
+        assert_approx_eq!(roc.points[1].tp_rate, 2.0 / 3.0);
+        assert_approx_eq!(roc.points[1].fp_rate, 0.42857142857142855);
+        assert_approx_eq!(roc.points[1].threshold, 0.9);
+        assert_approx_eq!(roc.points[2].tp_rate, 1.0);
+        assert_approx_eq!(roc.points[2].fp_rate, 0.42857142857142855);
+        assert_approx_eq!(roc.points[2].threshold, 0.8);
+        assert_approx_eq!(roc.points[3].tp_rate, 1.0);
+        assert_approx_eq!(roc.points[3].fp_rate, 1.0);
+        assert_approx_eq!(roc.points[3].threshold, 0.1);
+    }
+
+    #[test]
     fn test_roc_empty() {
         assert!(RocCurve::compute(&Vec::<f64>::new(), &Vec::<bool>::new()).is_err());
     }
@@ -1141,12 +1153,13 @@ mod tests {
         let labels1 = vec![false, false, true, false, true, false, true];
         let labels2 = vec![false, false, true, true, false, false, true];
         let labels3 = vec![false, false, false, true, true, false, true];
-        for point in RocCurve::compute(&scores, &labels1).unwrap().points {
-            println!("{} {} {}", point.tp_rate, point.fp_rate, point.threshold);
-        }
         assert_approx_eq!(RocCurve::compute(&scores, &labels1).unwrap().auc(), 0.75);
         assert_approx_eq!(RocCurve::compute(&scores, &labels2).unwrap().auc(), 0.75);
         assert_approx_eq!(RocCurve::compute(&scores, &labels3).unwrap().auc(), 0.75);
+
+        let scores2 = vec![1.0, 0.1, 1.0, 0.9, 0.5, 0.1, 0.8, 0.9, 1.0, 0.4];
+        let labels4 = vec![true, false, false, false, false, false, true, true, false, false];
+        assert_approx_eq!(RocCurve::compute(&scores2, &labels4).unwrap().auc(), 0.6904761904761905);
     }
     
     #[test]
