@@ -144,13 +144,10 @@ pub fn rsq<T: Scalar>(scores: &Vec<T>, labels: &Vec<T>) -> Result<T, EvalError> 
 /// ```
 ///
 pub fn corr<T: Scalar>(scores: &Vec<T>, labels: &Vec<T>) -> Result<T, EvalError> {
-
     util::validate_input_dims(scores, labels).and_then(|()| {
         let length = scores.len();
-
         let x_mean = scores.iter().fold(T::zero(), |sum, &v| {sum + v}) / T::from_usize(length);
         let y_mean = labels.iter().fold(T::zero(), |sum, &v| {sum + v}) / T::from_usize(length);
-
         let mut sxx = T::zero();
         let mut syy = T::zero();
         let mut sxy = T::zero();

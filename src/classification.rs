@@ -57,7 +57,6 @@ impl BinaryConfusionMatrix {
     pub fn compute<T: Scalar>(scores: &Vec<T>,
                               labels: &Vec<bool>,
                               threshold: T) -> Result<BinaryConfusionMatrix, EvalError> {
-
         util::validate_input_dims(scores, labels).and_then(|()| {
             let mut counts = [0, 0, 0, 0];
             for (&score, &label) in scores.iter().zip(labels) {
@@ -294,12 +293,12 @@ impl <T: Scalar> RocCurve<T> {
                     let threshold = pairs.last().unwrap().0;
                     match trend {
                         Some(RocTrend::Horizontal) if point.tp_rate == T::one() => {
-                            point.threshold = threshold;
                             point.fp_rate = T::one();
+                            point.threshold = threshold;
                         },
                         Some(RocTrend::Vertical) if point.fp_rate == T::one() => {
-                            point.threshold = threshold;
                             point.tp_rate = T::one();
+                            point.threshold = threshold;
                         }
                         _ => points.push(RocPoint {
                             tp_rate: T::one(), fp_rate: T::one(), threshold
@@ -490,7 +489,6 @@ impl MultiConfusionMatrix {
     ///
     pub fn compute<T: Scalar>(scores: &Vec<Vec<T>>,
                               labels: &Vec<usize>) -> Result<MultiConfusionMatrix, EvalError> {
-
         util::validate_input_dims(scores, labels).and_then(|()| {
             let dim = scores[0].len();
             let mut counts = vec![vec![0; dim]; dim];
@@ -614,7 +612,6 @@ impl MultiConfusionMatrix {
     /// coefficient" (2004)
     ///
     pub fn rk(&self) -> Result<f64, EvalError> {
-
         let mut t = vec![0.0; self.dim];
         let mut p = vec![0.0; self.dim];
         let mut c = 0.0;
@@ -631,7 +628,6 @@ impl MultiConfusionMatrix {
         let tt = t.iter().fold(0.0, |acc, val| acc + (val * val));
         let pp = p.iter().fold(0.0, |acc, val| acc + (val * val));
         let tp = t.iter().zip(p).fold(0.0, |acc, (t_val, p_val)| acc + t_val * p_val);
-
         let num = c * s - tp;
         let den = (s * s - pp).sqrt() * (s * s - tt).sqrt();
 
@@ -675,7 +671,6 @@ impl MultiConfusionMatrix {
 
     fn agg_metric(&self, pcm: &Vec<Result<f64, EvalError>>,
                   avg: &Averaging) -> Result<f64, EvalError> {
-
         match avg {
             Averaging::Macro => self.macro_metric(pcm),
             Averaging::Weighted => self.weighted_metric(pcm)
@@ -777,7 +772,6 @@ impl std::fmt::Display for MultiConfusionMatrix {
 /// ```
 
 pub fn m_auc<T: Scalar>(scores: &Vec<Vec<T>>, labels: &Vec<usize>) -> Result<T, EvalError> {
-
     util::validate_input_dims(scores, labels).and_then(|()| {
         let dim = scores[0].len();
         let mut m_sum = T::zero();
@@ -803,7 +797,6 @@ pub fn m_auc<T: Scalar>(scores: &Vec<Vec<T>>, labels: &Vec<usize>) -> Result<T, 
                 m_sum += (ajk + akj) / T::from_f64(2.0);
             }
         }
-
         Ok(m_sum * T::from_f64(2.0) / (T::from_usize(dim) * (T::from_usize(dim) - T::one())))
     })
 }
@@ -842,7 +835,6 @@ enum RocTrend {
 
 fn create_pairs<T: Scalar>(scores: &Vec<T>,
                            labels: &Vec<bool>) -> Result<(Vec<(T, bool)>, usize), EvalError> {
-
     let n = scores.len();
     let mut pairs = Vec::with_capacity(n);
     let mut num_pos = 0;
@@ -855,7 +847,6 @@ fn create_pairs<T: Scalar>(scores: &Vec<T>,
         }
         pairs.push((scores[i], labels[i]))
     }
-
     Ok((pairs, num_pos))
 }
 
