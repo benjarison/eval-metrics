@@ -295,8 +295,12 @@ impl <T: Scalar> RocCurve<T> {
                     match trend {
                         Some(RocTrend::Horizontal) if point.tp_rate == T::one() => {
                             point.threshold = threshold;
-                            point.fp_rate = T::from_f64(1.0);
+                            point.fp_rate = T::one();
                         },
+                        Some(RocTrend::Vertical) if point.fp_rate == T::one() => {
+                            point.threshold = threshold;
+                            point.tp_rate = T::one();
+                        }
                         _ => points.push(RocPoint {
                             tp_rate: T::one(), fp_rate: T::one(), threshold
                         })
