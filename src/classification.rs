@@ -144,6 +144,7 @@ impl BinaryConfusionMatrix {
     ///
     pub fn f1(&self) -> Result<f64, EvalError> {
         match (self.precision(), self.recall()) {
+            (Ok(p), Ok(r)) if p == 0.0 && r == 0.0 => Ok(0.0),
             (Ok(p), Ok(r)) => Ok(2.0 * (p * r) / (p + r)),
             (Err(e), _) => Err(e),
             (_, Err(e)) => Err(e)
@@ -660,9 +661,7 @@ impl MultiConfusionMatrix {
         let pcr = self.per_class_recall();
         pcp.iter().zip(pcr.iter()).map(|pair| {
             match pair {
-                (Ok(p), Ok(r)) if *p == 0.0 && *r == 0.0 => {
-                    Err(EvalError::undefined_metric("Per-Class F1"))
-                },
+                (Ok(p), Ok(r)) if *p == 0.0 && *r == 0.0 => Ok(0.0),
                 (Ok(p), Ok(r)) => Ok(2.0 * (p * r) / (p + r)),
                 (Err(e), _) | (_, Err(e)) => Err(e.clone())
             }
@@ -1047,6 +1046,18 @@ mod tests {
     }
 
     #[test]
+    fn test_binary_f1_0p_0r() {
+        let scores = vec![0.1, 0.2, 0.7, 0.8];
+        let labels = vec![false, true, false, false];
+
+        assert_eq!(BinaryConfusionMatrix::compute(&scores, &labels, 0.5)
+                       .unwrap()
+                       .f1()
+                       .unwrap(), 0.0
+        )
+    }
+
+    #[test]
     fn test_mcc() {
         let (scores, labels) = binary_data();
         let matrix = BinaryConfusionMatrix::compute(&scores, &labels, 0.5).unwrap();
@@ -1156,7 +1167,7 @@ mod tests {
         let labels4 = vec![true, false, false, false, false, false, true, true, false, false];
         assert_approx_eq!(RocCurve::compute(&scores2, &labels4).unwrap().auc(), 0.6904761904761905);
     }
-    
+
     #[test]
     fn test_pr() {
         let (scores, labels) = binary_data();
@@ -1342,15 +1353,14 @@ mod tests {
 
     #[test]
     fn test_multi_f1_0p_0r() {
-
         let scores = multi_class_data().0;
         // every prediction is wrong
         let labels = vec![1, 2, 0, 0, 1, 1, 0];
 
-        assert!(MultiConfusionMatrix::compute(&scores, &labels)
-            .unwrap()
-            .f1(&Averaging::Macro)
-            .is_err()
+        assert_eq!(MultiConfusionMatrix::compute(&scores, &labels)
+                       .unwrap()
+                       .f1(&Averaging::Macro)
+                       .unwrap(), 0.0
         )
     }
 
