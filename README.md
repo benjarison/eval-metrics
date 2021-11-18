@@ -1,6 +1,10 @@
 # eval-metrics
-
 Evaluation metrics for machine learning
+
+[![crates.io](https://img.shields.io/crates/v/eval-metrics.svg)](https://crates.io/crates/eval-metrics)
+![License](https://img.shields.io/crates/l/eval-metrics.svg)
+
+----------------------------------------
 
 ## Design
 
