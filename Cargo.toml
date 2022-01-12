@@ -1,6 +1,6 @@
 [package]
 name = "eval-metrics"
-version = "1.0.0"
+version = "1.0.1"
 authors = ["Benjamin Harrison <benjamin.jt.harrison@gmail.com>"]
 description = "Evaluation metrics for machine learning"
 keywords = ["evaluation-metrics", "machine-learning"]
