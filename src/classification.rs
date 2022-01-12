@@ -547,7 +547,7 @@ impl MultiConfusionMatrix {
             sum += row.iter().sum::<usize>();
             if row.len() != dim {
                 let msg = format!("Inconsistent column length ({})", row.len());
-                return Err(EvalError::InvalidInput(msg));
+                return Err(EvalError::invalid_input(msg.as_str()));
             }
         }
         if sum == 0 {

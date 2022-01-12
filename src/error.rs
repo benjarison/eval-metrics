@@ -6,72 +6,64 @@
 /// Evaluation error enumeration
 ///
 #[derive(Clone, Debug)]
-pub enum EvalError {
-    /// An error that results from invalid user input, such as mismatched data lengths
-    InvalidInput(String),
-    /// An error that indicates that the metric is undefined for some numeric reason
-    UndefinedMetric(String),
-    /// An error that indicates an invalid metric specification
-    InvalidMetric(String)
+pub struct EvalError {
+    /// The error message
+    msg: String
 }
 
 impl EvalError {
 
     ///
-    /// Constructs a new invalid input error with the provided message
+    /// Alerts than an invalid input was provided
     ///
     /// # Arguments
     ///
     /// * `msg` - detailed error message
     ///
     pub fn invalid_input(msg: &str) -> EvalError {
-        EvalError::InvalidInput(String::from(msg))
+        EvalError {msg: format!("Invalid input: {}", msg)}
     }
 
     ///
-    /// Constructs a new undefined metric error with the provided metric name
+    /// Alerts that an undefined metric was encountered
     ///
     /// # Arguments
     ///
     /// * `name` - metric name
     ///
     pub fn undefined_metric(name: &str) -> EvalError {
-        EvalError::UndefinedMetric(String::from(name))
+        EvalError {msg: format!("Undefined metric: {}", name)}
     }
 
     ///
-    /// Constructs a new undefined metric error for encountered infinite/NaN values
+    /// Alerts than an infinite/NaN value was encountered
     ///
     pub fn infinite_value() -> EvalError {
-        EvalError::undefined_metric("Infinite or NaN value")
+        EvalError {msg: String::from("Infinite or NaN value")}
     }
 
     ///
-    /// Constructs a new undefined metric error due to constant input data
+    /// Alerts that constant input data was encountered
     ///
     pub fn constant_input_data() -> EvalError {
-        EvalError::undefined_metric("Input data is constant")
+        EvalError {msg: String::from("Constant input data")}
     }
 
     ///
-    /// Constructs a new undefined metric error with the provided name
+    /// Alerts than an invalid metric was provided
     ///
     /// # Arguments
     ///
     /// * `name` - metric name
     ///
     pub fn invalid_metric(name: &str) -> EvalError {
-        EvalError::InvalidMetric(String::from(name))
+        EvalError {msg: format!("Invalid metric: {}", name)}
     }
 }
 
 impl std::fmt::Display for EvalError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            EvalError::InvalidInput(msg) => write!(f, "Invalid input: {}", msg),
-            EvalError::UndefinedMetric(name) => write!(f, "Undefined metric: {}", name),
-            EvalError::InvalidMetric(name) => write!(f, "Invalid metric: {}", name)
-        }
+        write!(f, "{}", self.msg)
     }
 }
 
