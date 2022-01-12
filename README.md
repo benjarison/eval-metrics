@@ -183,6 +183,53 @@ o==============o===========o===========|===========|===========o
 o==============o===========o===================================o
 ```
 
+In addition to these global metrics, per-class metrics can be obtained as well.
+
+```rust
+use eval_metrics::error::EvalError;
+use eval_metrics::classification::{MultiConfusionMatrix};
+
+fn main() -> Result<(), EvalError> {
+    // note: these scores could also be f32 values
+    let scores = vec![
+        vec![0.3, 0.1, 0.6],
+        vec![0.5, 0.2, 0.3],
+        vec![0.2, 0.7, 0.1],
+        vec![0.3, 0.3, 0.4],
+        vec![0.5, 0.1, 0.4],
+        vec![0.8, 0.1, 0.1],
+        vec![0.3, 0.5, 0.2]
+    ];
+    let labels = vec![2, 1, 1, 2, 0, 2, 0];
+
+    // compute confusion matrix from scores and labels
+    let matrix = MultiConfusionMatrix::compute(&scores, &labels)?;
+    
+    // per-class metrics
+    let pca = matrix.per_class_accuracy();
+    let pcp = matrix.per_class_precision();
+    let pcr = matrix.per_class_recall();
+    let pcf = matrix.per_class_f1();
+    let pcm = matrix.per_class_mcc();
+    
+    // print per-class metrics to console
+    println!("{:?}", pca);
+    println!("{:?}", pcp);
+    println!("{:?}", pcr);
+    println!("{:?}", pcf);
+    println!("{:?}", pcm);
+    Ok(())
+}
+```
+```
+[Ok(0.5714285714285714), Ok(0.7142857142857143), Ok(0.8571428571428571)]
+[Ok(0.3333333333333333), Ok(0.5), Ok(1.0)]
+[Ok(0.5), Ok(0.5), Ok(0.6666666666666666)]
+[Ok(0.4), Ok(0.5), Ok(0.8)]
+[Ok(0.09128709291752773), Ok(0.3), Ok(0.7302967433402215)]
+```
+
+
 In addition to the metrics derived from the confusion matrix, the M-AUC (multi-class AUC) metric as described by
 Hand and Till (2001) is provided as a standalone function:
 
