@@ -1377,6 +1377,62 @@ mod tests {
     }
 
     #[test]
+    fn test_per_class_accuracy() {
+        let (scores, labels) = multi_class_data();
+        let matrix = MultiConfusionMatrix::compute(&scores, &labels).unwrap();
+        let pca = matrix.per_class_accuracy();
+        assert_eq!(pca.len(), 3);
+        assert_approx_eq!(pca[0].as_ref().unwrap(), 0.5714285714285714);
+        assert_approx_eq!(pca[1].as_ref().unwrap(), 0.7142857142857143);
+        assert_approx_eq!(pca[2].as_ref().unwrap(), 0.8571428571428571);
+    }
+
+    #[test]
+    fn test_per_class_precision() {
+        let (scores, labels) = multi_class_data();
+        let matrix = MultiConfusionMatrix::compute(&scores, &labels).unwrap();
+        let pcp = matrix.per_class_precision();
+        assert_eq!(pcp.len(), 3);
+        assert_approx_eq!(pcp[0].as_ref().unwrap(), 0.3333333333333333);
+        assert_approx_eq!(pcp[1].as_ref().unwrap(), 0.5);
+        assert_approx_eq!(pcp[2].as_ref().unwrap(), 1.0);
+        println!("{}", matrix);
+    }
+
+    #[test]
+    fn test_per_class_recall() {
+        let (scores, labels) = multi_class_data();
+        let matrix = MultiConfusionMatrix::compute(&scores, &labels).unwrap();
+        let pcr = matrix.per_class_recall();
+        assert_eq!(pcr.len(), 3);
+        assert_approx_eq!(pcr[0].as_ref().unwrap(), 0.5);
+        assert_approx_eq!(pcr[1].as_ref().unwrap(), 0.5);
+        assert_approx_eq!(pcr[2].as_ref().unwrap(), 0.6666666666666666);
+    }
+
+    #[test]
+    fn test_per_class_f1() {
+        let (scores, labels) = multi_class_data();
+        let matrix = MultiConfusionMatrix::compute(&scores, &labels).unwrap();
+        let pcf = matrix.per_class_f1();
+        assert_eq!(pcf.len(), 3);
+        assert_approx_eq!(pcf[0].as_ref().unwrap(), 0.4);
+        assert_approx_eq!(pcf[1].as_ref().unwrap(), 0.5);
+        assert_approx_eq!(pcf[2].as_ref().unwrap(), 0.8);
+    }
+
+    #[test]
+    fn test_per_class_mcc() {
+        let (scores, labels) = multi_class_data();
+        let matrix = MultiConfusionMatrix::compute(&scores, &labels).unwrap();
+        let pcm = matrix.per_class_mcc();
+        assert_eq!(pcm.len(), 3);
+        assert_approx_eq!(pcm[0].as_ref().unwrap(), 0.09128709291752773);
+        assert_approx_eq!(pcm[1].as_ref().unwrap(), 0.3);
+        assert_approx_eq!(pcm[2].as_ref().unwrap(), 0.7302967433402215);
+    }
+
+    #[test]
     fn test_m_auc() {
         let (scores, labels) = multi_class_data();
         assert_approx_eq!(m_auc(&scores, &labels).unwrap(), 0.673611111111111)
