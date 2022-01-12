@@ -3,12 +3,12 @@
 //!
 
 ///
-/// Evaluation error enumeration
+/// Represents a generic evaluation error
 ///
 #[derive(Clone, Debug)]
 pub struct EvalError {
     /// The error message
-    msg: String
+    pub msg: String
 }
 
 impl EvalError {
