@@ -97,7 +97,7 @@ impl BinaryConfusionMatrix {
     ///
     /// An invalid input error will be returned if all provided counts are zero
     ///
-    pub fn with_counts(tp_count: usize,
+    pub fn from_counts(tp_count: usize,
                        fp_count: usize,
                        tn_count: usize,
                        fn_count: usize) -> Result<BinaryConfusionMatrix, EvalError> {
@@ -536,11 +536,11 @@ impl MultiConfusionMatrix {
     ///     vec![1, 5, 3],
     ///     vec![2, 1, 9]
     /// ];
-    /// let matrix = MultiConfusionMatrix::with_counts(counts)?;
+    /// let matrix = MultiConfusionMatrix::from_counts(counts)?;
     /// # Ok(())}
     /// ```
     ///
-    pub fn with_counts(counts: Vec<Vec<usize>>) -> Result<MultiConfusionMatrix, EvalError> {
+    pub fn from_counts(counts: Vec<Vec<usize>>) -> Result<MultiConfusionMatrix, EvalError> {
         let dim = counts.len();
         let mut sum = 0;
         for row in &counts {
@@ -691,7 +691,7 @@ impl MultiConfusionMatrix {
                     }
                 }
             }
-            let matrix = BinaryConfusionMatrix::with_counts(tpc, fpc, tnc, fnc)?;
+            let matrix = BinaryConfusionMatrix::from_counts(tpc, fpc, tnc, fnc)?;
             match metric {
                 "accuracy" => matrix.accuracy(),
                 "precision" => matrix.precision(),
@@ -931,13 +931,13 @@ mod tests {
 
     #[test]
     fn test_binary_confusion_matrix_with_counts() {
-        let matrix = BinaryConfusionMatrix::with_counts(2, 4, 5, 3).unwrap();
+        let matrix = BinaryConfusionMatrix::from_counts(2, 4, 5, 3).unwrap();
         assert_eq!(matrix.tp_count, 2);
         assert_eq!(matrix.fp_count, 4);
         assert_eq!(matrix.tn_count, 5);
         assert_eq!(matrix.fn_count, 3);
         assert_eq!(matrix.sum, 14);
-        assert!(BinaryConfusionMatrix::with_counts(0, 0, 0, 0).is_err())
+        assert!(BinaryConfusionMatrix::from_counts(0, 0, 0, 0).is_err())
     }
 
     #[test]
@@ -1283,7 +1283,7 @@ mod tests {
     #[test]
     fn test_multi_confusion_matrix_counts() {
         let counts = vec![vec![6, 3, 1], vec![4, 2, 7], vec![5, 2, 8]];
-        let matrix = MultiConfusionMatrix::with_counts(counts).unwrap();
+        let matrix = MultiConfusionMatrix::from_counts(counts).unwrap();
         assert_eq!(matrix.dim, 3);
         assert_eq!(matrix.sum, 38);
         assert_eq!(matrix.counts, vec![vec![6, 3, 1], vec![4, 2, 7], vec![5, 2, 8]]);
@@ -1292,7 +1292,7 @@ mod tests {
     #[test]
     fn test_multi_confusion_matrix_bad_counts() {
         let counts = vec![vec![6, 3, 1], vec![4, 2], vec![5, 2, 8]];
-        assert!(MultiConfusionMatrix::with_counts(counts).is_err())
+        assert!(MultiConfusionMatrix::from_counts(counts).is_err())
     }
 
     #[test]
