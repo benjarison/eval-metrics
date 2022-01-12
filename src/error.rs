@@ -10,7 +10,9 @@ pub enum EvalError {
     /// An error that results from invalid user input, such as mismatched data lengths
     InvalidInput(String),
     /// An error that indicates that the metric is undefined for some numeric reason
-    UndefinedMetric(String)
+    UndefinedMetric(String),
+    /// An error that indicates an invalid metric specification
+    InvalidMetric(String)
 }
 
 impl EvalError {
@@ -50,13 +52,25 @@ impl EvalError {
     pub fn constant_input_data() -> EvalError {
         EvalError::undefined_metric("Input data is constant")
     }
+
+    ///
+    /// Constructs a new undefined metric error with the provided name
+    ///
+    /// # Arguments
+    ///
+    /// * `name` - metric name
+    ///
+    pub fn invalid_metric(name: &str) -> EvalError {
+        EvalError::InvalidMetric(String::from(name))
+    }
 }
 
 impl std::fmt::Display for EvalError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             EvalError::InvalidInput(msg) => write!(f, "Invalid input: {}", msg),
-            EvalError::UndefinedMetric(name) => write!(f, "Undefined metric: {}", name)
+            EvalError::UndefinedMetric(name) => write!(f, "Undefined metric: {}", name),
+            EvalError::InvalidMetric(name) => write!(f, "Invalid metric: {}", name)
         }
     }
 }

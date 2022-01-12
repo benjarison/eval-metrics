@@ -640,30 +640,65 @@ impl MultiConfusionMatrix {
     }
 
     ///
+    /// Computes per-class accuracy, resulting in a vector of values for each class
+    ///
+    pub fn per_class_accuracy(&self) -> Vec<Result<f64, EvalError>> {
+        self.per_class_binary_metric("accuracy")
+    }
+
+    ///
     /// Computes per-class precision, resulting in a vector of values for each class
     ///
     pub fn per_class_precision(&self) -> Vec<Result<f64, EvalError>> {
-        self.per_class_pr_metric(PrMetric::Precision)
+        self.per_class_binary_metric("precision")
     }
 
     ///
     /// Computes per-class recall, resulting in a vector of values for each class
     ///
     pub fn per_class_recall(&self) -> Vec<Result<f64, EvalError>> {
-        self.per_class_pr_metric(PrMetric::Recall)
+        self.per_class_binary_metric("recall")
     }
 
     ///
     /// Computes per-class F1, resulting in a vector of values for each class
     ///
     pub fn per_class_f1(&self) -> Vec<Result<f64, EvalError>> {
-        let pcp = self.per_class_precision();
-        let pcr = self.per_class_recall();
-        pcp.iter().zip(pcr.iter()).map(|pair| {
-            match pair {
-                (Ok(p), Ok(r)) if *p == 0.0 && *r == 0.0 => Ok(0.0),
-                (Ok(p), Ok(r)) => Ok(2.0 * (p * r) / (p + r)),
-                (Err(e), _) | (_, Err(e)) => Err(e.clone())
+        self.per_class_binary_metric("f1")
+    }
+
+    ///
+    /// Computes per-class MCC, resulting in a vector of values for each class
+    ///
+    pub fn per_class_mcc(&self) -> Vec<Result<f64, EvalError>> {
+        self.per_class_binary_metric("mcc")
+    }
+
+    fn per_class_binary_metric(&self, metric: &str) -> Vec<Result<f64, EvalError>> {
+        (0..self.dim).map(|k| {
+            let (mut tpc, mut fpc, mut tnc, mut fnc) = (0, 0, 0, 0);
+            for i in 0..self.dim {
+                for j in 0..self.dim {
+                    let count = self.counts[i][j];
+                    if i == k && j == k {
+                        tpc = count;
+                    } else if i == k {
+                        fpc += count;
+                    } else if j == k {
+                        fnc += count;
+                    } else {
+                        tnc += count;
+                    }
+                }
+            }
+            let matrix = BinaryConfusionMatrix::with_counts(tpc, fpc, tnc, fnc)?;
+            match metric {
+                "accuracy" => matrix.accuracy(),
+                "precision" => matrix.precision(),
+                "recall" => matrix.recall(),
+                "f1" => matrix.f1(),
+                "mcc" => matrix.mcc(),
+                other => Err(EvalError::invalid_metric(other))
             }
         }).collect()
     }
@@ -674,22 +709,6 @@ impl MultiConfusionMatrix {
             Averaging::Macro => self.macro_metric(pcm),
             Averaging::Weighted => self.weighted_metric(pcm)
         }
-    }
-
-    fn per_class_pr_metric(&self, metric: PrMetric) -> Vec<Result<f64, EvalError>> {
-        (0..self.dim).map(|i| {
-            let a = self.counts[i][i];
-            let b = (0..self.dim).fold(0, |sum, j| {
-                sum + match metric {
-                    PrMetric::Precision => self.counts[i][j],
-                    PrMetric::Recall => self.counts[j][i]
-                }
-            }) - a;
-            match a + b {
-                0 => Err(EvalError::UndefinedMetric(format!("Per-Class {}", metric.name()))),
-                den => Ok(a as f64 / den as f64)
-            }
-        }).collect()
     }
 
     fn macro_metric(&self, pcm: &Vec<Result<f64, EvalError>>) -> Result<f64, EvalError> {
@@ -810,20 +829,6 @@ pub enum Averaging {
     /// Weighted average, in which the individual metrics for each class are weighted by the number
     /// of occurrences of that class
     Weighted
-}
-
-enum PrMetric {
-    Precision,
-    Recall
-}
-
-impl PrMetric {
-    fn name(&self) -> &'static str {
-        match self {
-            PrMetric::Precision => "Precision",
-            PrMetric::Recall => "Recall"
-        }
-    }
 }
 
 enum RocTrend {
