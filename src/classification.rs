@@ -214,8 +214,7 @@ impl <T: Scalar> RocCurve<T> {
     ///
     /// An invalid input error will be returned if either scores or labels are empty or contain a
     /// single data point, or if their lengths do not match. An undefined metric error will be
-    /// returned if scores contain any value that is not finite, if scores are all constant, or if
-    /// labels are all constant.
+    /// returned if scores contain any value that is not finite or if labels are all constant.
     ///
     /// # Examples
     ///
@@ -253,7 +252,7 @@ impl <T: Scalar> RocCurve<T> {
                     let tp_rate = T::from_usize(tpc) / T::from_usize(np);
                     let fp_rate = T::from_usize(fpc) / T::from_usize(nn);
                     if !tp_rate.is_finite() || !fp_rate.is_finite() {
-                        return Err(EvalError::infinite_value())
+                        return Err(EvalError::undefined_metric("ROC"))
                     }
                     let threshold = pairs[i-1].0;
                     match trend {
@@ -409,7 +408,7 @@ impl <T: Scalar> PrCurve<T> {
                     let precision = T::from_usize(tpc) / T::from_usize(tpc + fpc);
                     let recall = T::from_usize(tpc) / T::from_usize(tpc + fnc);
                     if !precision.is_finite() || !recall.is_finite() {
-                        return Err(EvalError::infinite_value())
+                        return Err(EvalError::undefined_metric("PR"))
                     }
                     let threshold = pairs[i].0;
                     if recall != last_rec {
@@ -1137,15 +1136,24 @@ mod tests {
         let scores = vec![0.1, 0.4, 0.5, 0.7];
         let labels_true = vec![true; 4];
         let labels_false = vec![false; 4];
-        assert!(RocCurve::compute(&scores, &labels_true).is_err());
-        assert!(RocCurve::compute(&scores, &labels_false).is_err());
+        assert!(match RocCurve::compute(&scores, &labels_true) {
+            Err(err) if err.msg.contains("Undefined") => true,
+            _ => false
+        });
+        assert!(match RocCurve::compute(&scores, &labels_false) {
+            Err(err) if err.msg.contains("Undefined") => true,
+            _ => false
+        });
     }
 
     #[test]
     fn test_roc_constant_score() {
         let scores = vec![0.4, 0.4, 0.4, 0.4];
         let labels = vec![true, false, true, false];
-        assert!(RocCurve::compute(&scores, &labels).is_err());
+        assert!(match RocCurve::compute(&scores, &labels) {
+            Err(err) if err.msg.contains("Constant") => true,
+            _ => false
+        });
     }
 
     #[test]
@@ -1212,7 +1220,17 @@ mod tests {
         let labels_true = vec![true; 4];
         let labels_false = vec![false; 4];
         assert!(PrCurve::compute(&scores, &labels_true).is_ok());
-        assert!(PrCurve::compute(&scores, &labels_false).is_err());
+        assert!(match PrCurve::compute(&scores, &labels_false) {
+            Err(err) if err.msg.contains("Undefined") => true,
+            _ => false
+        });
+    }
+
+    #[test]
+    fn test_pr_constant_score() {
+        let scores = vec![0.4, 0.4, 0.4, 0.4];
+        let labels = vec![true, false, true, false];
+        assert!(PrCurve::compute(&scores, &labels).is_ok());
     }
 
     #[test]
