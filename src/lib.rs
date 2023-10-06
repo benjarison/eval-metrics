@@ -3,8 +3,8 @@
 //!
 
 pub mod classification;
-pub mod regression;
-pub mod error;
 mod display;
+pub mod error;
 mod numeric;
+pub mod regression;
 mod util;

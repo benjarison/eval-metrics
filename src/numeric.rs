@@ -1,18 +1,18 @@
-use std::ops::{Add, Sub, Mul, Div, AddAssign};
+use std::ops::{Add, AddAssign, Div, Mul, Sub};
 
 ///
 /// Represents a scalar value which can either be single (f32) or double (f64) precision
 ///
 pub trait Scalar:
-    private::Sealed +
-    Copy +
-    Add<Self, Output=Self> +
-    Sub<Self, Output=Self> +
-    Mul<Self, Output=Self> +
-    Div<Self, Output=Self> +
-    AddAssign +
-    PartialOrd {
-
+    private::Sealed
+    + Copy
+    + Add<Self, Output = Self>
+    + Sub<Self, Output = Self>
+    + Mul<Self, Output = Self>
+    + Div<Self, Output = Self>
+    + AddAssign
+    + PartialOrd
+{
     ///
     /// Computes the absolute value
     ///
@@ -58,28 +58,60 @@ pub trait Scalar:
 /// Implementation for f32 single-precision values
 ///
 impl Scalar for f32 {
-    fn abs(self) -> Self {self.abs()}
-    fn sqrt(self) -> Self {self.sqrt()}
-    fn is_finite(self) -> bool {self.is_finite()}
-    fn zero() -> Self {0.0_f32}
-    fn one() -> Self {1.0_f32}
-    fn from_f32(x: f32) -> Self {x}
-    fn from_f64(x: f64) -> Self {x as f32}
-    fn from_usize(x: usize) -> Self {x as f32}
+    fn abs(self) -> Self {
+        self.abs()
+    }
+    fn sqrt(self) -> Self {
+        self.sqrt()
+    }
+    fn is_finite(self) -> bool {
+        self.is_finite()
+    }
+    fn zero() -> Self {
+        0.0_f32
+    }
+    fn one() -> Self {
+        1.0_f32
+    }
+    fn from_f32(x: f32) -> Self {
+        x
+    }
+    fn from_f64(x: f64) -> Self {
+        x as f32
+    }
+    fn from_usize(x: usize) -> Self {
+        x as f32
+    }
 }
 
 ///
 /// Implementation for f64 double-precision values
 ///
 impl Scalar for f64 {
-    fn abs(self) -> Self {self.abs()}
-    fn sqrt(self) -> Self {self.sqrt()}
-    fn is_finite(self) -> bool {self.is_finite()}
-    fn zero() -> Self {0.0}
-    fn one() -> Self {1.0}
-    fn from_f32(x: f32) -> Self {x as f64}
-    fn from_f64(x: f64) -> Self {x}
-    fn from_usize(x: usize) -> Self {x as f64}
+    fn abs(self) -> Self {
+        self.abs()
+    }
+    fn sqrt(self) -> Self {
+        self.sqrt()
+    }
+    fn is_finite(self) -> bool {
+        self.is_finite()
+    }
+    fn zero() -> Self {
+        0.0
+    }
+    fn one() -> Self {
+        1.0
+    }
+    fn from_f32(x: f32) -> Self {
+        x as f64
+    }
+    fn from_f64(x: f64) -> Self {
+        x
+    }
+    fn from_usize(x: usize) -> Self {
+        x as f64
+    }
 }
 
 mod private {

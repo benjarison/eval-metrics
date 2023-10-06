@@ -16,7 +16,9 @@ pub fn validate_input_dims<T, U>(scores: &Vec<T>, labels: &Vec<U>) -> Result<(),
     } else if labels.is_empty() {
         Err(EvalError::invalid_input("Labels are empty"))
     } else if scores.len() != labels.len() {
-        Err(EvalError::invalid_input("Scores and labels have different lengths"))
+        Err(EvalError::invalid_input(
+            "Scores and labels have different lengths",
+        ))
     } else {
         Ok(())
     }

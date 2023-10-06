@@ -2,9 +2,9 @@
 //! Provides support for regression metrics
 //!
 
-use crate::util;
-use crate::numeric::Scalar;
 use crate::error::EvalError;
+use crate::numeric::Scalar;
+use crate::util;
 
 ///
 /// Computes the mean squared error between scores and labels
@@ -27,12 +27,18 @@ use crate::error::EvalError;
 /// ```
 ///
 pub fn mse<T: Scalar>(scores: &Vec<T>, labels: &Vec<T>) -> Result<T, EvalError> {
-    util::validate_input_dims(scores, labels).and_then(|()| {
-        Ok(scores.iter().zip(labels.iter()).fold(T::zero(), |sum, (&a, &b)| {
-            let diff = a - b;
-            sum + (diff * diff)
-        }) / T::from_usize(scores.len()))
-    }).and_then(util::check_finite)
+    util::validate_input_dims(scores, labels)
+        .and_then(|()| {
+            Ok(scores
+                .iter()
+                .zip(labels.iter())
+                .fold(T::zero(), |sum, (&a, &b)| {
+                    let diff = a - b;
+                    sum + (diff * diff)
+                })
+                / T::from_usize(scores.len()))
+        })
+        .and_then(util::check_finite)
 }
 
 ///
@@ -80,11 +86,15 @@ pub fn rmse<T: Scalar>(scores: &Vec<T>, labels: &Vec<T>) -> Result<T, EvalError>
 /// ```
 ///
 pub fn mae<T: Scalar>(scores: &Vec<T>, labels: &Vec<T>) -> Result<T, EvalError> {
-    util::validate_input_dims(scores, labels).and_then(|()| {
-        Ok(scores.iter().zip(labels.iter()).fold(T::zero(), |sum, (&a, &b)| {
-            sum + (a - b).abs()
-        }) / T::from_usize(scores.len()))
-    }).and_then(util::check_finite)
+    util::validate_input_dims(scores, labels)
+        .and_then(|()| {
+            Ok(scores
+                .iter()
+                .zip(labels.iter())
+                .fold(T::zero(), |sum, (&a, &b)| sum + (a - b).abs())
+                / T::from_usize(scores.len()))
+        })
+        .and_then(util::check_finite)
 }
 
 ///
@@ -110,8 +120,8 @@ pub fn mae<T: Scalar>(scores: &Vec<T>, labels: &Vec<T>) -> Result<T, EvalError> 
 pub fn rsq<T: Scalar>(scores: &Vec<T>, labels: &Vec<T>) -> Result<T, EvalError> {
     util::validate_input_dims(scores, labels).and_then(|()| {
         let length = scores.len();
-        let label_sum = labels.iter().fold(T::zero(), |s, &v| {s + v});
-        let label_mean =  label_sum / T::from_usize(length);
+        let label_sum = labels.iter().fold(T::zero(), |s, &v| s + v);
+        let label_mean = label_sum / T::from_usize(length);
         let den = labels.iter().fold(T::zero(), |sse, &label| {
             sse + (label - label_mean) * (label - label_mean)
         }) / T::from_usize(length);
@@ -146,8 +156,8 @@ pub fn rsq<T: Scalar>(scores: &Vec<T>, labels: &Vec<T>) -> Result<T, EvalError> 
 pub fn corr<T: Scalar>(scores: &Vec<T>, labels: &Vec<T>) -> Result<T, EvalError> {
     util::validate_input_dims(scores, labels).and_then(|()| {
         let length = scores.len();
-        let x_mean = scores.iter().fold(T::zero(), |sum, &v| {sum + v}) / T::from_usize(length);
-        let y_mean = labels.iter().fold(T::zero(), |sum, &v| {sum + v}) / T::from_usize(length);
+        let x_mean = scores.iter().fold(T::zero(), |sum, &v| sum + v) / T::from_usize(length);
+        let y_mean = labels.iter().fold(T::zero(), |sum, &v| sum + v) / T::from_usize(length);
         let mut sxx = T::zero();
         let mut syy = T::zero();
         let mut sxy = T::zero();
@@ -162,7 +172,7 @@ pub fn corr<T: Scalar>(scores: &Vec<T>, labels: &Vec<T>) -> Result<T, EvalError>
 
         match (sxx * syy).sqrt() {
             den if den == T::zero() => Err(EvalError::constant_input_data()),
-            den => util::check_finite(sxy / den)
+            den => util::check_finite(sxy / den),
         }
     })
 }
@@ -170,12 +180,12 @@ pub fn corr<T: Scalar>(scores: &Vec<T>, labels: &Vec<T>) -> Result<T, EvalError>
 #[cfg(test)]
 mod tests {
 
-    use assert_approx_eq::assert_approx_eq;
     use super::*;
+    use assert_approx_eq::assert_approx_eq;
 
     fn data() -> (Vec<f64>, Vec<f64>) {
-        let scores= vec![0.5, 0.2, 0.7, 0.4, 0.1, 0.3, 0.8, 0.9];
-        let labels= vec![0.3, 0.1, 0.5, 0.6, 0.2, 0.5, 0.7, 0.6];
+        let scores = vec![0.5, 0.2, 0.7, 0.4, 0.1, 0.3, 0.8, 0.9];
+        let labels = vec![0.3, 0.1, 0.5, 0.6, 0.2, 0.5, 0.7, 0.6];
         (scores, labels)
     }
 

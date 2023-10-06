@@ -1,4 +1,3 @@
-
 ///
 /// Creates a string representation of a confusion matrix with the provided counts and class names
 ///
@@ -9,27 +8,40 @@
 ///
 pub fn stringify_confusion_matrix(counts: &Vec<Vec<usize>>, classes: &Vec<String>) -> String {
     // Compute max length of outcome names (in chars)
-    let max_class_length = classes.iter().fold(0, |max, outcome| {
-        match outcome.chars().count() {
+    let max_class_length = classes
+        .iter()
+        .fold(0, |max, outcome| match outcome.chars().count() {
             length if length > max => length,
-            _ => max
-        }
-    });
+            _ => max,
+        });
     // Two spaces on either side, plus a leading pipe character
     let padded_class_length = max_class_length + 5;
     // Two spaces on either side of "Prediction", plus a leading pipe character
     let prediction_wing_length = padded_class_length + 15;
     // Build the output string
     let mut output = String::new();
-    write_cm_top_rows(classes, prediction_wing_length, padded_class_length, &mut output);
-    write_cm_data_rows(counts, classes, prediction_wing_length, padded_class_length, &mut output);
+    write_cm_top_rows(
+        classes,
+        prediction_wing_length,
+        padded_class_length,
+        &mut output,
+    );
+    write_cm_data_rows(
+        counts,
+        classes,
+        prediction_wing_length,
+        padded_class_length,
+        &mut output,
+    );
     output
 }
 
-fn write_cm_top_rows(outcomes: &Vec<String>,
-                     prediction_wing_length: usize,
-                     padded_outcome_length: usize,
-                     buffer: &mut String) {
+fn write_cm_top_rows(
+    outcomes: &Vec<String>,
+    prediction_wing_length: usize,
+    padded_outcome_length: usize,
+    buffer: &mut String,
+) {
     // 1st row
     fill_char(' ', prediction_wing_length, buffer);
     buffer.push('o');
@@ -70,12 +82,13 @@ fn write_cm_top_rows(outcomes: &Vec<String>,
     buffer.push_str("o\n");
 }
 
-fn write_cm_data_rows(counts: &Vec<Vec<usize>>,
-                      outcomes: &Vec<String>,
-                      prediction_wing_length: usize,
-                      padded_outcome_length: usize,
-                      buffer: &mut String) {
-
+fn write_cm_data_rows(
+    counts: &Vec<Vec<usize>>,
+    outcomes: &Vec<String>,
+    prediction_wing_length: usize,
+    padded_outcome_length: usize,
+    buffer: &mut String,
+) {
     for (i, outcome) in outcomes.iter().enumerate() {
         buffer.push('|');
         if i == outcomes.len() / 2 && outcomes.len() % 2 != 0 {
