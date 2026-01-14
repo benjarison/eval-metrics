@@ -12,11 +12,11 @@ use crate::numeric::Scalar;
 ///
 pub fn validate_input_dims<T, U>(scores: &Vec<T>, labels: &Vec<U>) -> Result<(), EvalError> {
     if scores.is_empty() {
-        Err(EvalError::invalid_input("Scores are empty"))
+        Err(EvalError::invalid_argument("Scores are empty"))
     } else if labels.is_empty() {
-        Err(EvalError::invalid_input("Labels are empty"))
+        Err(EvalError::invalid_argument("Labels are empty"))
     } else if scores.len() != labels.len() {
-        Err(EvalError::invalid_input(
+        Err(EvalError::invalid_argument(
             "Scores and labels have different lengths",
         ))
     } else {
@@ -35,6 +35,6 @@ pub fn check_finite<T: Scalar>(value: T) -> Result<T, EvalError> {
     if value.is_finite() {
         Ok(value)
     } else {
-        Err(EvalError::infinite_value())
+        Err(EvalError::non_finite_value())
     }
 }

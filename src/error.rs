@@ -6,9 +6,11 @@
 /// Represents a generic evaluation error
 ///
 #[derive(Clone, Debug)]
-pub struct EvalError {
-    /// The error message
-    pub msg: String,
+pub enum EvalError {
+    InvalidArgument { message: String },
+    InvalidMetric { name: String },
+    NonFiniteValue,
+    UndefinedMetric { name: String },
 }
 
 impl EvalError {
@@ -19,40 +21,9 @@ impl EvalError {
     ///
     /// * `msg` - detailed error message
     ///
-    pub fn invalid_input(msg: &str) -> EvalError {
-        EvalError {
-            msg: format!("Invalid input: {}", msg),
-        }
-    }
-
-    ///
-    /// Alerts that an undefined metric was encountered
-    ///
-    /// # Arguments
-    ///
-    /// * `name` - metric name
-    ///
-    pub fn undefined_metric(name: &str) -> EvalError {
-        EvalError {
-            msg: format!("Undefined metric: {}", name),
-        }
-    }
-
-    ///
-    /// Alerts than an infinite/NaN value was encountered
-    ///
-    pub fn infinite_value() -> EvalError {
-        EvalError {
-            msg: String::from("Infinite or NaN value"),
-        }
-    }
-
-    ///
-    /// Alerts that constant input data was encountered
-    ///
-    pub fn constant_input_data() -> EvalError {
-        EvalError {
-            msg: String::from("Constant input data"),
+    pub fn invalid_argument(message: impl Into<String>) -> EvalError {
+        EvalError::InvalidArgument {
+            message: message.into(),
         }
     }
 
@@ -63,16 +34,32 @@ impl EvalError {
     ///
     /// * `name` - metric name
     ///
-    pub fn invalid_metric(name: &str) -> EvalError {
-        EvalError {
-            msg: format!("Invalid metric: {}", name),
-        }
+    pub fn invalid_metric(name: impl Into<String>) -> EvalError {
+        EvalError::InvalidMetric { name: name.into() }
+    }
+
+    ///
+    /// Alerts than an infinite or NaN value was encountered
+    ///
+    pub fn non_finite_value() -> EvalError {
+        EvalError::NonFiniteValue
+    }
+
+    ///
+    /// Alerts that an undefined metric was encountered
+    ///
+    /// # Arguments
+    ///
+    /// * `name` - metric name
+    ///
+    pub fn undefined_metric(name: impl Into<String>) -> EvalError {
+        EvalError::UndefinedMetric { name: name.into() }
     }
 }
 
 impl std::fmt::Display for EvalError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.msg)
+        write!(f, "{:?}", self)
     }
 }
 

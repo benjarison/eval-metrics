@@ -4,7 +4,7 @@
 
 use crate::error::EvalError;
 use crate::numeric::Scalar;
-use crate::util;
+use crate::util::*;
 
 ///
 /// Computes the mean squared error between scores and labels
@@ -27,18 +27,17 @@ use crate::util;
 /// ```
 ///
 pub fn mse<T: Scalar>(scores: &Vec<T>, labels: &Vec<T>) -> Result<T, EvalError> {
-    util::validate_input_dims(scores, labels)
-        .and_then(|()| {
-            Ok(scores
-                .iter()
-                .zip(labels.iter())
-                .fold(T::zero(), |sum, (&a, &b)| {
-                    let diff = a - b;
-                    sum + (diff * diff)
-                })
-                / T::from_usize(scores.len()))
-        })
-        .and_then(util::check_finite)
+    with_validation(scores, labels, |scores, labels| {
+        let numerator = scores
+            .iter()
+            .zip(labels.iter())
+            .fold(T::zero(), |sum, (&a, &b)| {
+                let diff = a - b;
+                sum + (diff * diff)
+            });
+        let value = numerator / T::from_usize(scores.len());
+        Ok(value)
+    })
 }
 
 ///
@@ -86,15 +85,14 @@ pub fn rmse<T: Scalar>(scores: &Vec<T>, labels: &Vec<T>) -> Result<T, EvalError>
 /// ```
 ///
 pub fn mae<T: Scalar>(scores: &Vec<T>, labels: &Vec<T>) -> Result<T, EvalError> {
-    util::validate_input_dims(scores, labels)
-        .and_then(|()| {
-            Ok(scores
-                .iter()
-                .zip(labels.iter())
-                .fold(T::zero(), |sum, (&a, &b)| sum + (a - b).abs())
-                / T::from_usize(scores.len()))
-        })
-        .and_then(util::check_finite)
+    with_validation(scores, labels, |scores, labels| {
+        let numerator = scores
+            .iter()
+            .zip(labels.iter())
+            .fold(T::zero(), |sum, (&a, &b)| sum + (a - b).abs());
+        let value = numerator / T::from_usize(scores.len());
+        Ok(value)
+    })
 }
 
 ///
@@ -118,18 +116,14 @@ pub fn mae<T: Scalar>(scores: &Vec<T>, labels: &Vec<T>) -> Result<T, EvalError> 
 /// ```
 ///
 pub fn rsq<T: Scalar>(scores: &Vec<T>, labels: &Vec<T>) -> Result<T, EvalError> {
-    util::validate_input_dims(scores, labels).and_then(|()| {
+    with_validation(scores, labels, |scores, labels| {
         let length = scores.len();
         let label_sum = labels.iter().fold(T::zero(), |s, &v| s + v);
         let label_mean = label_sum / T::from_usize(length);
-        let den = labels.iter().fold(T::zero(), |sse, &label| {
+        let denominator = labels.iter().fold(T::zero(), |sse, &label| {
             sse + (label - label_mean) * (label - label_mean)
         }) / T::from_usize(length);
-        if den == T::zero() {
-            Err(EvalError::constant_input_data())
-        } else {
-            mse(scores, labels).map(|m| T::one() - (m / den))
-        }
+        mse(scores, labels).map(|m| T::one() - (m / denominator))
     })
 }
 
@@ -154,7 +148,7 @@ pub fn rsq<T: Scalar>(scores: &Vec<T>, labels: &Vec<T>) -> Result<T, EvalError> 
 /// ```
 ///
 pub fn corr<T: Scalar>(scores: &Vec<T>, labels: &Vec<T>) -> Result<T, EvalError> {
-    util::validate_input_dims(scores, labels).and_then(|()| {
+    with_validation(scores, labels, |scores, labels| {
         let length = scores.len();
         let x_mean = scores.iter().fold(T::zero(), |sum, &v| sum + v) / T::from_usize(length);
         let y_mean = labels.iter().fold(T::zero(), |sum, &v| sum + v) / T::from_usize(length);
@@ -170,11 +164,19 @@ pub fn corr<T: Scalar>(scores: &Vec<T>, labels: &Vec<T>) -> Result<T, EvalError>
             sxy += x_diff * y_diff;
         });
 
-        match (sxx * syy).sqrt() {
-            den if den == T::zero() => Err(EvalError::constant_input_data()),
-            den => util::check_finite(sxy / den),
-        }
+        let denominator = (sxx * syy).sqrt();
+        Ok(sxy / denominator)
     })
+}
+
+fn with_validation<T: Scalar>(
+    scores: &Vec<T>,
+    labels: &Vec<T>,
+    compute: fn(&Vec<T>, &Vec<T>) -> Result<T, EvalError>,
+) -> Result<T, EvalError> {
+    validate_input_dims(scores, labels)?;
+    let value = compute(scores, labels)?;
+    check_finite(value)
 }
 
 #[cfg(test)]

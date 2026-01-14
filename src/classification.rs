@@ -5,7 +5,7 @@
 use crate::display;
 use crate::error::EvalError;
 use crate::numeric::Scalar;
-use crate::util;
+use crate::util::*;
 use std::cmp::Ordering;
 
 ///
@@ -58,29 +58,28 @@ impl BinaryConfusionMatrix {
         labels: &Vec<bool>,
         threshold: T,
     ) -> Result<BinaryConfusionMatrix, EvalError> {
-        util::validate_input_dims(scores, labels).and_then(|()| {
-            let mut counts = [0, 0, 0, 0];
-            for (&score, &label) in scores.iter().zip(labels) {
-                if !score.is_finite() {
-                    return Err(EvalError::infinite_value());
-                } else if score >= threshold && label {
-                    counts[3] += 1;
-                } else if score >= threshold {
-                    counts[2] += 1;
-                } else if score < threshold && !label {
-                    counts[0] += 1;
-                } else {
-                    counts[1] += 1;
-                }
+        validate_input_dims(scores, labels)?;
+        let mut counts = [0, 0, 0, 0];
+        for (&score, &label) in scores.iter().zip(labels) {
+            if !score.is_finite() {
+                return Err(EvalError::non_finite_value());
+            } else if score >= threshold && label {
+                counts[3] += 1;
+            } else if score >= threshold {
+                counts[2] += 1;
+            } else if score < threshold && !label {
+                counts[0] += 1;
+            } else {
+                counts[1] += 1;
             }
-            let sum = counts.iter().sum();
-            Ok(BinaryConfusionMatrix {
-                tp_count: counts[3],
-                fp_count: counts[2],
-                tn_count: counts[0],
-                fn_count: counts[1],
-                sum,
-            })
+        }
+        let sum = counts.iter().sum();
+        Ok(BinaryConfusionMatrix {
+            tp_count: counts[3],
+            fp_count: counts[2],
+            tn_count: counts[0],
+            fn_count: counts[1],
+            sum,
         })
     }
 
@@ -105,7 +104,7 @@ impl BinaryConfusionMatrix {
         fn_count: usize,
     ) -> Result<BinaryConfusionMatrix, EvalError> {
         match tp_count + fp_count + tn_count + fn_count {
-            0 => Err(EvalError::invalid_input(
+            0 => Err(EvalError::invalid_argument(
                 "Confusion matrix has all zero counts",
             )),
             sum => Ok(BinaryConfusionMatrix {
@@ -243,109 +242,108 @@ impl<T: Scalar> RocCurve<T> {
     /// ```
     ///
     pub fn compute(scores: &Vec<T>, labels: &Vec<bool>) -> Result<RocCurve<T>, EvalError> {
-        util::validate_input_dims(scores, labels).and_then(|()| {
-            // roc not defined for a single data point
-            let n = match scores.len() {
-                1 => {
-                    return Err(EvalError::invalid_input(
-                        "Unable to compute roc curve on single data point",
-                    ))
-                }
-                len => len,
-            };
-            let (mut pairs, np) = create_pairs(scores, labels)?;
-            let nn = n - np;
-            sort_pairs_descending(&mut pairs);
-            let mut tpc = if pairs[0].1 { 1 } else { 0 };
-            let mut fpc = 1 - tpc;
-            let mut points = Vec::<RocPoint<T>>::new();
-            let mut last_tpr = T::zero();
-            let mut last_fpr = T::zero();
-            let mut trend: Option<RocTrend> = None;
+        validate_input_dims(scores, labels)?;
+        // roc not defined for a single data point
+        let n = match scores.len() {
+            1 => {
+                return Err(EvalError::invalid_argument(
+                    "Unable to compute roc curve on single data point",
+                ))
+            }
+            len => len,
+        };
+        let (mut pairs, np) = create_pairs(scores, labels)?;
+        let nn = n - np;
+        sort_pairs_descending(&mut pairs);
+        let mut tpc = if pairs[0].1 { 1 } else { 0 };
+        let mut fpc = 1 - tpc;
+        let mut points = Vec::<RocPoint<T>>::new();
+        let mut last_tpr = T::zero();
+        let mut last_fpr = T::zero();
+        let mut trend: Option<RocTrend> = None;
 
-            for i in 1..n {
-                if pairs[i].0 != pairs[i - 1].0 {
-                    let tp_rate = T::from_usize(tpc) / T::from_usize(np);
-                    let fp_rate = T::from_usize(fpc) / T::from_usize(nn);
-                    if !tp_rate.is_finite() || !fp_rate.is_finite() {
-                        return Err(EvalError::undefined_metric("ROC"));
-                    }
-                    let threshold = pairs[i - 1].0;
-                    match trend {
-                        Some(RocTrend::Horizontal) => {
-                            if tp_rate > last_tpr {
-                                points.push(RocPoint {
-                                    tp_rate,
-                                    fp_rate,
-                                    threshold,
-                                });
-                            } else if let Some(mut point) = points.last_mut() {
-                                point.fp_rate = fp_rate;
-                                point.threshold = threshold;
-                            }
-                        }
-                        Some(RocTrend::Vertical) => {
-                            if fp_rate > last_fpr {
-                                points.push(RocPoint {
-                                    tp_rate,
-                                    fp_rate,
-                                    threshold,
-                                })
-                            } else if let Some(mut point) = points.last_mut() {
-                                point.tp_rate = tp_rate;
-                                point.threshold = threshold;
-                            }
-                        }
-                        _ => points.push(RocPoint {
-                            tp_rate,
-                            fp_rate,
-                            threshold,
-                        }),
-                    }
-
-                    trend = if fp_rate > last_fpr && tp_rate == last_tpr {
-                        Some(RocTrend::Horizontal)
-                    } else if tp_rate > last_tpr && fp_rate == last_fpr {
-                        Some(RocTrend::Vertical)
-                    } else {
-                        Some(RocTrend::Diagonal)
-                    };
-                    last_tpr = tp_rate;
-                    last_fpr = fp_rate;
+        for i in 1..n {
+            if pairs[i].0 != pairs[i - 1].0 {
+                let tp_rate = T::from_usize(tpc) / T::from_usize(np);
+                let fp_rate = T::from_usize(fpc) / T::from_usize(nn);
+                if !tp_rate.is_finite() || !fp_rate.is_finite() {
+                    return Err(EvalError::undefined_metric("ROC"));
                 }
-                if pairs[i].1 {
-                    tpc += 1;
+                let threshold = pairs[i - 1].0;
+                match trend {
+                    Some(RocTrend::Horizontal) => {
+                        if tp_rate > last_tpr {
+                            points.push(RocPoint {
+                                tp_rate,
+                                fp_rate,
+                                threshold,
+                            });
+                        } else if let Some(point) = points.last_mut() {
+                            point.fp_rate = fp_rate;
+                            point.threshold = threshold;
+                        }
+                    }
+                    Some(RocTrend::Vertical) => {
+                        if fp_rate > last_fpr {
+                            points.push(RocPoint {
+                                tp_rate,
+                                fp_rate,
+                                threshold,
+                            })
+                        } else if let Some(point) = points.last_mut() {
+                            point.tp_rate = tp_rate;
+                            point.threshold = threshold;
+                        }
+                    }
+                    _ => points.push(RocPoint {
+                        tp_rate,
+                        fp_rate,
+                        threshold,
+                    }),
+                }
+
+                trend = if fp_rate > last_fpr && tp_rate == last_tpr {
+                    Some(RocTrend::Horizontal)
+                } else if tp_rate > last_tpr && fp_rate == last_fpr {
+                    Some(RocTrend::Vertical)
                 } else {
-                    fpc += 1;
-                }
+                    Some(RocTrend::Diagonal)
+                };
+                last_tpr = tp_rate;
+                last_fpr = fp_rate;
             }
+            if pairs[i].1 {
+                tpc += 1;
+            } else {
+                fpc += 1;
+            }
+        }
 
-            if let Some(mut point) = points.last_mut() {
-                if point.tp_rate != T::one() || point.fp_rate != T::one() {
-                    let threshold = pairs.last().unwrap().0;
-                    match trend {
-                        Some(RocTrend::Horizontal) if point.tp_rate == T::one() => {
-                            point.fp_rate = T::one();
-                            point.threshold = threshold;
-                        }
-                        Some(RocTrend::Vertical) if point.fp_rate == T::one() => {
-                            point.tp_rate = T::one();
-                            point.threshold = threshold;
-                        }
-                        _ => points.push(RocPoint {
-                            tp_rate: T::one(),
-                            fp_rate: T::one(),
-                            threshold,
-                        }),
+        if let Some(point) = points.last_mut() {
+            if point.tp_rate != T::one() || point.fp_rate != T::one() {
+                let threshold = pairs.last().unwrap().0;
+                match trend {
+                    Some(RocTrend::Horizontal) if point.tp_rate == T::one() => {
+                        point.fp_rate = T::one();
+                        point.threshold = threshold;
                     }
+                    Some(RocTrend::Vertical) if point.fp_rate == T::one() => {
+                        point.tp_rate = T::one();
+                        point.threshold = threshold;
+                    }
+                    _ => points.push(RocPoint {
+                        tp_rate: T::one(),
+                        fp_rate: T::one(),
+                        threshold,
+                    }),
                 }
             }
+        }
 
-            match points.len() {
-                0 => Err(EvalError::constant_input_data()),
-                dim => Ok(RocCurve { points, dim }),
-            }
-        })
+        match points.len() {
+            0 => Err(EvalError::invalid_argument("Input data is constant")),
+            dim => Ok(RocCurve { points, dim }),
+        }
     }
 
     ///
@@ -416,50 +414,49 @@ impl<T: Scalar> PrCurve<T> {
     /// ```
     ///
     pub fn compute(scores: &Vec<T>, labels: &Vec<bool>) -> Result<PrCurve<T>, EvalError> {
-        util::validate_input_dims(scores, labels).and_then(|()| {
-            let n = match scores.len() {
-                1 => {
-                    return Err(EvalError::invalid_input(
-                        "Unable to compute pr curve on single data point",
-                    ))
-                }
-                len => len,
-            };
-            let (mut pairs, mut fnc) = create_pairs(scores, labels)?;
-            sort_pairs_descending(&mut pairs);
-            let mut tpc = 0;
-            let mut fpc = 0;
-            let mut points = Vec::<PrPoint<T>>::new();
-            let mut last_rec = T::zero();
-
-            for i in 0..n {
-                if pairs[i].1 {
-                    tpc += 1;
-                    fnc -= 1;
-                } else {
-                    fpc += 1;
-                }
-                if (i < n - 1 && pairs[i].0 != pairs[i + 1].0) || i == n - 1 {
-                    let precision = T::from_usize(tpc) / T::from_usize(tpc + fpc);
-                    let recall = T::from_usize(tpc) / T::from_usize(tpc + fnc);
-                    if !precision.is_finite() || !recall.is_finite() {
-                        return Err(EvalError::undefined_metric("PR"));
-                    }
-                    let threshold = pairs[i].0;
-                    if recall != last_rec {
-                        points.push(PrPoint {
-                            precision,
-                            recall,
-                            threshold,
-                        });
-                    }
-                    last_rec = recall;
-                }
+        validate_input_dims(scores, labels)?;
+        let n = match scores.len() {
+            1 => {
+                return Err(EvalError::invalid_argument(
+                    "Unable to compute pr curve on single data point",
+                ))
             }
+            len => len,
+        };
+        let (mut pairs, mut fnc) = create_pairs(scores, labels)?;
+        sort_pairs_descending(&mut pairs);
+        let mut tpc = 0;
+        let mut fpc = 0;
+        let mut points = Vec::<PrPoint<T>>::new();
+        let mut last_rec = T::zero();
 
-            let dim = points.len();
-            Ok(PrCurve { points, dim })
-        })
+        for i in 0..n {
+            if pairs[i].1 {
+                tpc += 1;
+                fnc -= 1;
+            } else {
+                fpc += 1;
+            }
+            if (i < n - 1 && pairs[i].0 != pairs[i + 1].0) || i == n - 1 {
+                let precision = T::from_usize(tpc) / T::from_usize(tpc + fpc);
+                let recall = T::from_usize(tpc) / T::from_usize(tpc + fnc);
+                if !precision.is_finite() || !recall.is_finite() {
+                    return Err(EvalError::undefined_metric("PR"));
+                }
+                let threshold = pairs[i].0;
+                if recall != last_rec {
+                    points.push(PrPoint {
+                        precision,
+                        recall,
+                        threshold,
+                    });
+                }
+                last_rec = recall;
+            }
+        }
+
+        let dim = points.len();
+        Ok(PrCurve { points, dim })
     }
 
     ///
@@ -528,31 +525,30 @@ impl MultiConfusionMatrix {
         scores: &Vec<Vec<T>>,
         labels: &Vec<usize>,
     ) -> Result<MultiConfusionMatrix, EvalError> {
-        util::validate_input_dims(scores, labels).and_then(|()| {
-            let dim = scores[0].len();
-            let mut counts = vec![vec![0; dim]; dim];
-            let mut sum = 0;
-            for (i, s) in scores.iter().enumerate() {
-                if s.iter().any(|v| !v.is_finite()) {
-                    return Err(EvalError::infinite_value());
-                } else if s.len() != dim {
-                    return Err(EvalError::invalid_input("Inconsistent score dimension"));
-                } else if labels[i] >= dim {
-                    return Err(EvalError::invalid_input(
-                        "Labels have more classes than scores",
-                    ));
-                }
-                let ind = s
-                    .iter()
-                    .enumerate()
-                    .max_by(|(_, a), (_, b)| a.partial_cmp(b).unwrap_or(Ordering::Equal))
-                    .map(|(mi, _)| mi)
-                    .ok_or(EvalError::constant_input_data())?;
-                counts[ind][labels[i]] += 1;
-                sum += 1;
+        validate_input_dims(scores, labels)?;
+        let dim = scores[0].len();
+        let mut counts = vec![vec![0; dim]; dim];
+        let mut sum = 0;
+        for (i, s) in scores.iter().enumerate() {
+            if s.iter().any(|v| !v.is_finite()) {
+                return Err(EvalError::non_finite_value());
+            } else if s.len() != dim {
+                return Err(EvalError::invalid_argument("Inconsistent score dimension"));
+            } else if labels[i] >= dim {
+                return Err(EvalError::invalid_argument(
+                    "Labels have more classes than scores",
+                ));
             }
-            Ok(MultiConfusionMatrix { dim, counts, sum })
-        })
+            let ind = s
+                .iter()
+                .enumerate()
+                .max_by(|(_, a), (_, b)| a.partial_cmp(b).unwrap_or(Ordering::Equal))
+                .map(|(mi, _)| mi)
+                .ok_or(EvalError::invalid_argument("Input data is constant"))?;
+            counts[ind][labels[i]] += 1;
+            sum += 1;
+        }
+        Ok(MultiConfusionMatrix { dim, counts, sum })
     }
 
     ///
@@ -590,11 +586,11 @@ impl MultiConfusionMatrix {
             sum += row.iter().sum::<usize>();
             if row.len() != dim {
                 let msg = format!("Inconsistent column length ({})", row.len());
-                return Err(EvalError::invalid_input(msg.as_str()));
+                return Err(EvalError::invalid_argument(msg.as_str()));
             }
         }
         if sum == 0 {
-            Err(EvalError::invalid_input(
+            Err(EvalError::invalid_argument(
                 "Confusion matrix has all zero counts",
             ))
         } else {
@@ -845,34 +841,33 @@ impl std::fmt::Display for MultiConfusionMatrix {
 /// ```
 
 pub fn m_auc<T: Scalar>(scores: &Vec<Vec<T>>, labels: &Vec<usize>) -> Result<T, EvalError> {
-    util::validate_input_dims(scores, labels).and_then(|()| {
-        let dim = scores[0].len();
-        let mut m_sum = T::zero();
+    validate_input_dims(scores, labels)?;
+    let dim = scores[0].len();
+    let mut m_sum = T::zero();
 
-        fn subset<T: Scalar>(
-            scr: &Vec<Vec<T>>,
-            lab: &Vec<usize>,
-            j: usize,
-            k: usize,
-        ) -> (Vec<T>, Vec<bool>) {
-            scr.iter()
-                .zip(lab.iter())
-                .filter(|(_, &l)| l == j || l == k)
-                .map(|(s, &l)| (s[k], l == k))
-                .unzip()
-        }
+    fn subset<T: Scalar>(
+        scr: &Vec<Vec<T>>,
+        lab: &Vec<usize>,
+        j: usize,
+        k: usize,
+    ) -> (Vec<T>, Vec<bool>) {
+        scr.iter()
+            .zip(lab.iter())
+            .filter(|(_, &l)| l == j || l == k)
+            .map(|(s, &l)| (s[k], l == k))
+            .unzip()
+    }
 
-        for j in 0..dim {
-            for k in 0..j {
-                let (k_scores, k_labels) = subset(scores, labels, j, k);
-                let ajk = RocCurve::compute(&k_scores, &k_labels)?.auc();
-                let (j_scores, j_labels) = subset(scores, labels, k, j);
-                let akj = RocCurve::compute(&j_scores, &j_labels)?.auc();
-                m_sum += (ajk + akj) / T::from_f64(2.0);
-            }
+    for j in 0..dim {
+        for k in 0..j {
+            let (k_scores, k_labels) = subset(scores, labels, j, k);
+            let ajk = RocCurve::compute(&k_scores, &k_labels)?.auc();
+            let (j_scores, j_labels) = subset(scores, labels, k, j);
+            let akj = RocCurve::compute(&j_scores, &j_labels)?.auc();
+            m_sum += (ajk + akj) / T::from_f64(2.0);
         }
-        Ok(m_sum * T::from_f64(2.0) / (T::from_usize(dim) * (T::from_usize(dim) - T::one())))
-    })
+    }
+    Ok(m_sum * T::from_f64(2.0) / (T::from_usize(dim) * (T::from_usize(dim) - T::one())))
 }
 
 ///
@@ -903,7 +898,7 @@ fn create_pairs<T: Scalar>(
 
     for i in 0..n {
         if !scores[i].is_finite() {
-            return Err(EvalError::infinite_value());
+            return Err(EvalError::non_finite_value());
         } else if labels[i] {
             num_pos += 1;
         }
@@ -1194,11 +1189,11 @@ mod tests {
         let labels_true = vec![true; 4];
         let labels_false = vec![false; 4];
         assert!(match RocCurve::compute(&scores, &labels_true) {
-            Err(err) if err.msg.contains("Undefined") => true,
+            Err(EvalError::UndefinedMetric { .. }) => true,
             _ => false,
         });
         assert!(match RocCurve::compute(&scores, &labels_false) {
-            Err(err) if err.msg.contains("Undefined") => true,
+            Err(EvalError::UndefinedMetric { .. }) => true,
             _ => false,
         });
     }
@@ -1208,7 +1203,7 @@ mod tests {
         let scores = vec![0.4, 0.4, 0.4, 0.4];
         let labels = vec![true, false, true, false];
         assert!(match RocCurve::compute(&scores, &labels) {
-            Err(err) if err.msg.contains("Constant") => true,
+            Err(EvalError::InvalidArgument { message }) if message.contains("constant") => true,
             _ => false,
         });
     }
@@ -1284,7 +1279,7 @@ mod tests {
         let labels_false = vec![false; 4];
         assert!(PrCurve::compute(&scores, &labels_true).is_ok());
         assert!(match PrCurve::compute(&scores, &labels_false) {
-            Err(err) if err.msg.contains("Undefined") => true,
+            Err(EvalError::UndefinedMetric { .. }) => true,
             _ => false,
         });
     }
